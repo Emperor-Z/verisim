@@ -8,6 +8,11 @@ const OLLAMA_EMBEDDING_DIMENSION = 768;
 export const EMBEDDING_DIMENSION: number = OLLAMA_EMBEDDING_DIMENSION;
 
 export function detectMismatchedLLMProvider() {
+  // VeriSim: nomic-embed-text shares 768 dims with Together.ai's default;
+  // when Ollama is explicitly configured, skip the dimension-based guessing.
+  if (process.env.OLLAMA_HOST || process.env.OLLAMA_MODEL) {
+    return;
+  }
   switch (EMBEDDING_DIMENSION) {
     case OPENAI_EMBEDDING_DIMENSION:
       if (!process.env.OPENAI_API_KEY) {

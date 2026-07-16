@@ -1,0 +1,6 @@
+# Local dev: host networking so the Convex backend can reach Ollama on 127.0.0.1:11434
+services:
+  backend:
+    network_mode: host
+    ports: !reset []
+    networks: !reset []
