@@ -108,7 +108,10 @@ export function getLLMConfig(): LLMConfig {
   return {
     provider: 'ollama',
     url: process.env.OLLAMA_HOST ?? 'http://127.0.0.1:11434',
-    chatModel: process.env.OLLAMA_MODEL ?? 'qwen3.5:4b',
+    // qwen2.5-coder:7b — non-reasoning model; follows the dialogue-only persona
+    // instruction cleanly. Reasoning models (qwen3, deepseek-r1) leak chain-of-thought
+    // and internal monologue into character speech, breaking roleplay.
+    chatModel: process.env.OLLAMA_MODEL ?? 'qwen2.5-coder:7b',
     embeddingModel: process.env.OLLAMA_EMBEDDING_MODEL ?? 'nomic-embed-text',
     stopWords: ['<|eot_id|>'],
     apiKey: undefined,
