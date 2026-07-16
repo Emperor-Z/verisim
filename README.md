@@ -1,10 +1,30 @@
+# VeriSim 🏥
+
+**Persona-driven clinical simulation for healthcare professional training.**
+
+VeriSim is a research prototype in which the player is a clinician and every other character in the
+room — the patient, a family member, a nurse colleague — is an AI agent with its own persona,
+emotional state, and escalation/de-escalation triggers. Clinical actions (ordering tests) are gated
+on patient consent: the learner must de-escalate and persuade before they can act. Communication
+skill and clinical reasoning become inseparable, as in real practice.
+
+Built for the MSc dissertation *"Evaluating the Effectiveness and Authenticity of AI-Driven
+Simulations in Healthcare Professional Training"* (WMG, University of Warwick). Runs fully
+offline on local models via Ollama. See `docs/persona_cards.md` for the scenario design.
+
+> **Scope of use:** This is a training simulation for educational research purposes only. It does
+> not provide medical advice, diagnosis, or treatment guidance, and must not be used to inform
+> real clinical decisions. AI-generated content may be inaccurate; all clinical learning should be
+> validated with qualified educators.
+
+---
+
+*VeriSim is a fork of [AI Town](https://github.com/a16z-infra/ai-town) (MIT licence, a16z-infra) —
+the original README follows and its setup instructions still apply.*
+
 # AI Town 🏠💻💌
 
 [Live Demo](https://www.convex.dev/ai-town)
-
-[Join our community Discord: AI Stack Devs](https://discord.gg/PQUmTBTGmT)
-
-<img width="1454" alt="Screen Shot 2023-08-14 at 10 01 00 AM" src="https://github.com/a16z-infra/ai-town/assets/3489963/a4c91f17-23ed-47ec-8c4e-9f9a8505057d">
 
 AI Town is a virtual town where AI characters live, chat and socialize.
 

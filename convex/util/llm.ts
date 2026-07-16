@@ -2,7 +2,8 @@
 
 const OPENAI_EMBEDDING_DIMENSION = 1536;
 const TOGETHER_EMBEDDING_DIMENSION = 768;
-const OLLAMA_EMBEDDING_DIMENSION = 1024;
+// VeriSim: nomic-embed-text (768) instead of upstream's mxbai-embed-large (1024)
+const OLLAMA_EMBEDDING_DIMENSION = 768;
 
 export const EMBEDDING_DIMENSION: number = OLLAMA_EMBEDDING_DIMENSION;
 
@@ -102,8 +103,8 @@ export function getLLMConfig(): LLMConfig {
   return {
     provider: 'ollama',
     url: process.env.OLLAMA_HOST ?? 'http://127.0.0.1:11434',
-    chatModel: process.env.OLLAMA_MODEL ?? 'llama3',
-    embeddingModel: process.env.OLLAMA_EMBEDDING_MODEL ?? 'mxbai-embed-large',
+    chatModel: process.env.OLLAMA_MODEL ?? 'qwen3.5:4b',
+    embeddingModel: process.env.OLLAMA_EMBEDDING_MODEL ?? 'nomic-embed-text',
     stopWords: ['<|eot_id|>'],
     apiKey: undefined,
   };
