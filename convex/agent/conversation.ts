@@ -52,8 +52,7 @@ export async function startConversationMessage(
       `Be sure to include some detail or question about a previous conversation in your greeting.`,
     );
   }
-  const lastPrompt = `${player.name} to ${otherPlayer.name}:`;
-  prompt.push(lastPrompt);
+  prompt.push(replyInstruction(player.name));
 
   const { content } = await chatCompletion({
     messages: [
@@ -61,18 +60,47 @@ export async function startConversationMessage(
         role: 'system',
         content: prompt.join('\n'),
       },
+      {
+        role: 'user',
+        content: `Begin the conversation now. Say the first thing ${player.name} would say to ${otherPlayer.name}.`,
+      },
     ],
     max_tokens: 300,
-    stop: stopWords(otherPlayer.name, player.name),
+    stop: turnStops(player.name, otherPlayer.name),
   });
-  return trimContentPrefx(content, lastPrompt);
+  return stripSpeakerPrefix(content, player.name, otherPlayer.name);
 }
 
-function trimContentPrefx(content: string, prompt: string) {
-  if (content.startsWith(prompt)) {
-    return content.slice(prompt.length).trim();
+// Chat-native fix (see docs/build_notes.md, Finding 3): AI Town's original prompt ended with a
+// completion-style `"<Speaker> to <Other>:"` scaffold and used the other speaker's label as a stop
+// word. Instruction-tuned chat models echo that scaffold, so the stop word truncated the reply to
+// empty. We now instruct the model plainly and only stop on NEW labelled turns (newline-prefixed),
+// never a label at position 0, then defensively strip any residual leading label.
+function replyInstruction(speaker: string): string {
+  return (
+    `Reply with ONLY what ${speaker} says next, in the first person. ` +
+    `Do NOT prefix it with a name (no "${speaker}:"). Do NOT use quotation marks. ` +
+    `Do NOT write any other character's lines. Keep it to one or two sentences.`
+  );
+}
+
+// Stop only if the model starts a *new* labelled turn. Newline-prefixed so a label can never match
+// at offset 0 (which is what emptied the reply before). OpenAI/Ollama accept up to 4 stop strings.
+function turnStops(speaker: string, other: string): string[] {
+  return [`\n${speaker}:`, `\n${other}:`, `\n${speaker} to `, `\n${other} to `];
+}
+
+// Defensive: remove a leading "X to Y:" or "Name:" label if the model still emits one.
+function stripSpeakerPrefix(content: string, speaker: string, other: string): string {
+  let c = content.replace(/^\s+/, '');
+  const prefixes = [`${speaker} to ${other}:`, `${other} to ${speaker}:`, `${speaker}:`];
+  for (const p of prefixes) {
+    if (c.startsWith(p)) {
+      c = c.slice(p.length).replace(/^\s+/, '');
+      break;
+    }
   }
-  return content;
+  return c.trim();
 }
 
 export async function continueConversationMessage(
@@ -105,8 +133,9 @@ export async function continueConversationMessage(
   prompt.push(...agentPrompts(otherPlayer, agent, otherAgent ?? null));
   prompt.push(...relatedMemoriesPrompt(memories));
   prompt.push(
-    `Below is the current chat history between you and ${otherPlayer.name}.`,
+    `The messages below are the current chat history between you and ${otherPlayer.name}.`,
     `DO NOT greet them again. Do NOT use the word "Hey" too often. Your response should be brief and within 200 characters.`,
+    replyInstruction(player.name),
   );
 
   const llmMessages: LLMMessage[] = [
@@ -122,15 +151,13 @@ export async function continueConversationMessage(
       conversation.id as GameId<'conversations'>,
     )),
   ];
-  const lastPrompt = `${player.name} to ${otherPlayer.name}:`;
-  llmMessages.push({ role: 'user', content: lastPrompt });
 
   const { content } = await chatCompletion({
     messages: llmMessages,
     max_tokens: 300,
-    stop: stopWords(otherPlayer.name, player.name),
+    stop: turnStops(player.name, otherPlayer.name),
   });
-  return trimContentPrefx(content, lastPrompt);
+  return stripSpeakerPrefix(content, player.name, otherPlayer.name);
 }
 
 export async function leaveConversationMessage(
@@ -155,8 +182,9 @@ export async function leaveConversationMessage(
   ];
   prompt.push(...agentPrompts(otherPlayer, agent, otherAgent ?? null));
   prompt.push(
-    `Below is the current chat history between you and ${otherPlayer.name}.`,
+    `The messages below are the current chat history between you and ${otherPlayer.name}.`,
     `How would you like to tell them that you're leaving? Your response should be brief and within 200 characters.`,
+    replyInstruction(player.name),
   );
   const llmMessages: LLMMessage[] = [
     {
@@ -171,15 +199,13 @@ export async function leaveConversationMessage(
       conversation.id as GameId<'conversations'>,
     )),
   ];
-  const lastPrompt = `${player.name} to ${otherPlayer.name}:`;
-  llmMessages.push({ role: 'user', content: lastPrompt });
 
   const { content } = await chatCompletion({
     messages: llmMessages,
     max_tokens: 300,
-    stop: stopWords(otherPlayer.name, player.name),
+    stop: turnStops(player.name, otherPlayer.name),
   });
-  return trimContentPrefx(content, lastPrompt);
+  return stripSpeakerPrefix(content, player.name, otherPlayer.name);
 }
 
 function agentPrompts(
@@ -236,11 +262,11 @@ async function previousMessages(
   const llmMessages: LLMMessage[] = [];
   const prevMessages = await ctx.runQuery(api.messages.listMessages, { worldId, conversationId });
   for (const message of prevMessages) {
-    const author = message.author === player.id ? player : otherPlayer;
-    const recipient = message.author === player.id ? otherPlayer : player;
+    // Role-tag the turns so a chat model knows whose line is whose without a text scaffold:
+    // our own past lines are `assistant`, the other party's are `user`.
     llmMessages.push({
-      role: 'user',
-      content: `${author.name} to ${recipient.name}: ${message.text}`,
+      role: message.author === player.id ? 'assistant' : 'user',
+      content: message.text,
     });
   }
   return llmMessages;
@@ -345,8 +371,3 @@ export const queryPromptData = internalQuery({
   },
 });
 
-function stopWords(otherPlayer: string, player: string) {
-  // These are the words we ask the LLM to stop on. OpenAI only supports 4.
-  const variants = [`${otherPlayer} to ${player}`];
-  return variants.flatMap((stop) => [stop + ':', stop.toLowerCase() + ':']);
-}

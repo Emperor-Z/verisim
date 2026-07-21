@@ -44,6 +44,54 @@ stop word `"Ray:"` truncates to garbage (`"Sam to "`). This is why message text 
 3. **Post-process**: strip any leading `"X to Y:"` prefix and stop on newline instead of names.
    Quick patch, less robust.
 
+### Finding 3 — RESOLVED (21 July 2026): option 1 implemented (+ option 3 as a safety net)
+Rewrote all three completion paths in `convex/agent/conversation.ts` to be chat-native:
+- Dropped the trailing `"<Speaker> to <Other>:"` scaffold; added an explicit instruction
+  (`replyInstruction`): *"Reply with ONLY what <Speaker> says next, first person, no name prefix…"*.
+- `previousMessages` now role-tags history — the speaker's own past lines as `assistant`, the other
+  party's as `user` — instead of one `user` blob with `"Author to Recipient:"` prefixes.
+- Replaced the name-based `stopWords` (the direct cause of the empty output) with `turnStops`, which
+  only stop on a **newline-prefixed** new label (`\n<Name>:`), so a label can never match at offset 0.
+- Kept a defensive `stripSpeakerPrefix` (option 3) for any residual leading label.
+
+**Verification (local CPU, no GPU):** `npx convex dev --once` pushes clean (no type errors).
+A direct `/v1/chat/completions` call mirroring the new message shape, on the current model
+`qwen2.5-coder:3b` (~3s, no timeout), returned a non-empty in-character line:
+`"I just need a glass of water and I'll be fine."` — vs the old format's empty `"Sam to "`.
+**The empty-text bug is fixed at the logic level.** GPU (see `kaggle_gpu_setup.md`) now only buys
+dialogue *quality* and lower latency, and an in-world capture with the engine running is still to do.
+
+**Note (pre-existing, harmless):** `convex/util/llm.ts` has a duplicate-case warning —
+`TOGETHER_EMBEDDING_DIMENSION` and `OLLAMA_EMBEDDING_DIMENSION` are both 768, so the OLLAMA case is
+dead code. Functionally irrelevant because `detectMismatchedLLMProvider` early-returns when OLLAMA_*
+env is set. Left as-is.
+
+## Consent-gate logic (21 July 2026)
+Trust-state mechanic implemented as pure, framework-free logic in `convex/verisim/consentGate.ts`
+with `consentGate.test.ts` (11 assertions passing via `npx tsx`). State machine + wiring plan in
+`docs/consent_gate.md`.
+
+## Consent-gate — classifier, session, tone hook, UI panel (21 July 2026, later)
+Completed the mechanic at the logic level:
+- `convex/verisim/eventClassifier.ts` (+ test, 18 cases) — keyword baseline mapping free-text player
+  utterances to `deescalation_lever | escalation_trigger | plain_explanation | neutral`. Precedence:
+  escalation > explanation > de-escalation > neutral (hard to earn trust, easy to lose). To be
+  swapped for an LLM classifier later behind the same interface.
+- `convex/verisim/session.ts` (+ test, 9 assertions) — `handlePlayerUtterance` (classify→update),
+  `replayTranscript`, and `trustPromptLine(state)` which is injected into the patient agent prompt so
+  the model's *tone* tracks the trust number.
+- `src/components/TestMenu.tsx` — prop-driven React/Tailwind panel; greys out invasive/medication
+  until `consentGiven`, shows a trust meter + refusal line. Typechecks under the frontend `tsc`.
+
+**Tone-hook validation (local CPU, qwen2.5-coder:3b):** same clinician line ("…do a heart tracing,
+is that alright?"), hostile trust line → Ray refuses ("No, thank you… I'm fine now anyway");
+consenting trust line → Ray agrees ("Yes… please take a heart tracing"). The behavioural switch is
+correct; the 3B model occasionally mis-addresses itself ("…good Ray") — a small-model artifact that
+GPU + a stronger instruct model fixes.
+
+**Still to wire (needs running engine / Convex state; deferred with GPU):** persist `TrustState` in
+Convex, feed `trustPromptLine` into the live `agentPrompts` path, mount `TestMenu` in the game UI.
+
 ## Config touched (vs upstream AI Town)
 - `data/characters.ts` — 3 clinical personas
 - `convex/util/llm.ts` — Ollama defaults (qwen2.5-coder:3b, nomic-embed-text 768-dim),

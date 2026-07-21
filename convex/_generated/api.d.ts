@@ -50,6 +50,7 @@ import type * as util_object from "../util/object.js";
 import type * as util_sleep from "../util/sleep.js";
 import type * as util_types from "../util/types.js";
 import type * as util_xxhash from "../util/xxhash.js";
+import type * as verisim_consentGate from "../verisim/consentGate.js";
 import type * as world from "../world.js";
 
 import type {
@@ -101,6 +102,7 @@ declare const fullApi: ApiFromModules<{
   "util/sleep": typeof util_sleep;
   "util/types": typeof util_types;
   "util/xxhash": typeof util_xxhash;
+  "verisim/consentGate": typeof verisim_consentGate;
   world: typeof world;
 }>;
 

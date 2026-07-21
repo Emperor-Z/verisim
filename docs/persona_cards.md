@@ -67,3 +67,7 @@ current trust state permits it. Trust state is maintained by the patient agent f
 history: each de-escalation lever raises it, each trigger lowers it. Refused actions produce an
 in-character refusal and a trust penalty — pushing without repair makes Ray self-discharge
 (scenario fail state). This makes communication skill and clinical reasoning inseparable by design.
+
+The state machine (hostile → wary → consenting → self-discharged), event taxonomy, thresholds, and
+the gate function are specified in `docs/consent_gate.md` and implemented as pure, unit-tested logic
+in `convex/verisim/consentGate.ts` (`evaluateTestRequest` / `consentGiven`).
