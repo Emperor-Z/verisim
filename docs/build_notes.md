@@ -92,6 +92,34 @@ GPU + a stronger instruct model fixes.
 **Still to wire (needs running engine / Convex state; deferred with GPU):** persist `TrustState` in
 Convex, feed `trustPromptLine` into the live `agentPrompts` path, mount `TestMenu` in the game UI.
 
+## GPU validation — Kaggle T4/P100, llama3.1:8b-instruct-q4_K_M (24 July 2026)
+
+Kaggle account phone-verified, unlocking GPU + internet. Notebook pushed via the `kaggle` CLI
+(`verisim/docs/kaggle_gpu_setup.md` cells, as a batch kernel rather than clicking through the
+Kaggle web UI — much faster to iterate). One fix needed: Kaggle's base image is missing `zstd`,
+which the Ollama install script requires for extraction — added `apt-get install -y zstd` before
+the `curl | sh` install. Model pulled (`llama3.1:8b-instruct-q4_K_M`, 4.9 GB) and served over a
+`cloudflared` quick tunnel; `convex env set OLLAMA_HOST/OLLAMA_MODEL` pointed the local Convex
+backend at it.
+
+**Direct API verification (chat-native prompt shape, same as `conversation.ts` now sends):**
+- Hostile system prompt + a "just lie back, it's routine" line → Ray refuses in character: *"I
+  don't want some stranger poking around on my chest with sticky straps that are gonna leave
+  bruises... What's the point of all this anyway?"*
+- Same clinician question preceded by a de-escalation line → Ray agrees: *"Yeah, fine, do whatever
+  you need to do, but hurry up and tell me what's wrong with my heart, I'm not getting any younger
+  sitting here."*
+
+Both outputs are clean — no name-prefix artifact, no mis-addressing (the 3B CPU model's "…good
+Ray" quirk from the tone-hook validation above does not appear on the 8B GPU model). This confirms
+Finding 2 (timeout) and the small-model quality artifact are both resolved by GPU + a stronger
+instruct model, as predicted; the dialogue-format fix (Finding 3) was already correct at the logic
+level independent of hardware.
+
+**Caveat for the write-up:** the Kaggle tunnel is ephemeral (URL changes every notebook restart,
+session capped ~12h/30h-per-week). Fine for demo/recording sessions, not for an always-on
+deployment — a reproducibility/limitations point, not a design flaw.
+
 ## Config touched (vs upstream AI Town)
 - `data/characters.ts` — 3 clinical personas
 - `convex/util/llm.ts` — Ollama defaults (qwen2.5-coder:3b, nomic-embed-text 768-dim),

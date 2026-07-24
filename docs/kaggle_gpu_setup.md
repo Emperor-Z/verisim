@@ -7,15 +7,36 @@ Why: fixes the CPU timeout (Finding 2) and lets us run a proper instruct model (
 
 ---
 
-## Kaggle (recommended — 16 GB T4, ~30h/week)
+## Kaggle (recommended — 16 GB T4/P100, ~30h/week)
+
+**Done once (24 July 2026):** account phone-verified (required before GPU/Internet unlock in
+Settings). CLI installed via `pipx install kaggle`; API token generated at
+kaggle.com/settings/api and stored at `~/.kaggle/access_token` (not committed anywhere — see
+"Auth" below). Pushing a notebook via the CLI (`kaggle kernels push`) as a batch kernel is much
+faster to iterate on than clicking through the web editor cell-by-cell, and the live log stream
+is readable from the kernel's page (`kaggle.com/code/<user>/<kernel>` → Logs tab) while it runs —
+useful for grabbing the `trycloudflare.com` URL without waiting for the run to finish (the
+`kaggle kernels output` CLI command only returns logs *after* a run completes, which doesn't work
+for a kernel whose last cell is a long keep-alive loop).
+
+**Auth:** `~/.kaggle/access_token` holds the live API token — kept out of both dissertation repos
+deliberately (a committed live credential is bad practice even in a private repo). Regenerate at
+kaggle.com/settings/api if it's ever lost/revoked.
+
+**Known fix required:** Kaggle's notebook base image is missing `zstd`, which the Ollama install
+script needs for extraction — install it before the Ollama installer (Cell 1 below already
+includes this).
 
 1. kaggle.com → **Create → New Notebook**.
 2. Settings (right panel): **Accelerator → GPU T4 x2**, and **Internet → On**
    (Internet requires a phone-verified Kaggle account — do this once in Settings).
-3. Paste each block below into a cell and run in order.
+3. Paste each block below into a cell and run in order (or push all four as one notebook via the
+   CLI — see `kaggle kernels push -p <dir>` with a `kernel-metadata.json` setting `enable_gpu` and
+   `enable_internet` to `"true"`).
 
-### Cell 1 — install & start Ollama
+### Cell 1 — install zstd, install & start Ollama
 ```python
+!apt-get update -qq && apt-get install -y -qq zstd
 !curl -fsSL https://ollama.com/install.sh | sh
 import os, subprocess, time
 os.environ['OLLAMA_HOST'] = '0.0.0.0:11434'   # accept connections from the tunnel
@@ -53,11 +74,17 @@ while True:
     time.sleep(60)
 ```
 
-Then **send me the `https://xxxxx.trycloudflare.com` URL.** I point VeriSim at it:
+Then point VeriSim at it (needs the local Convex backend running — `docker compose up -d backend`):
 ```
 npx convex env set OLLAMA_HOST https://xxxxx.trycloudflare.com
 npx convex env set OLLAMA_MODEL llama3.1:8b-instruct-q4_K_M
 ```
+
+**Live run (24 July 2026):** tunnel URL `https://lopez-void-populations-lights.trycloudflare.com`
+(this specific URL is dead once that session ends — logged for the record only). Both env vars
+set successfully; a direct chat-completions call in the new chat-native message shape produced
+clean in-character dialogue with no artifacts — see `build_notes.md` "GPU validation" section for
+the transcript.
 
 ---
 
