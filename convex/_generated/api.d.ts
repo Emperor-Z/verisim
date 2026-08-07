@@ -51,6 +51,10 @@ import type * as util_sleep from "../util/sleep.js";
 import type * as util_types from "../util/types.js";
 import type * as util_xxhash from "../util/xxhash.js";
 import type * as verisim_consentGate from "../verisim/consentGate.js";
+import type * as verisim_eventClassifier from "../verisim/eventClassifier.js";
+import type * as verisim_schema from "../verisim/schema.js";
+import type * as verisim_session from "../verisim/session.js";
+import type * as verisim_trustStates from "../verisim/trustStates.js";
 import type * as world from "../world.js";
 
 import type {
@@ -103,6 +107,10 @@ declare const fullApi: ApiFromModules<{
   "util/types": typeof util_types;
   "util/xxhash": typeof util_xxhash;
   "verisim/consentGate": typeof verisim_consentGate;
+  "verisim/eventClassifier": typeof verisim_eventClassifier;
+  "verisim/schema": typeof verisim_schema;
+  "verisim/session": typeof verisim_session;
+  "verisim/trustStates": typeof verisim_trustStates;
   world: typeof world;
 }>;
 
