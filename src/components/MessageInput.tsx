@@ -7,6 +7,10 @@ import { useSendInput } from '../hooks/sendInput';
 import { Player } from '../../convex/aiTown/player';
 import { Conversation } from '../../convex/aiTown/conversation';
 
+// Scenario 01's designated patient persona — kept in sync with the same constant in
+// PlayerDetails.tsx and convex/agent/conversation.ts (data/characters.ts, docs/persona_cards.md).
+const VERISIM_PATIENT_NAME = 'Ray';
+
 export function MessageInput({
   worldId,
   engineId,
@@ -21,9 +25,14 @@ export function MessageInput({
   const descriptions = useQuery(api.world.gameDescriptions, { worldId });
   const humanName = descriptions?.playerDescriptions.find((p) => p.playerId === humanPlayer.id)
     ?.name;
+  const otherPlayerId = [...conversation.participants.keys()].find((id) => id !== humanPlayer.id);
+  const otherPlayerName = descriptions?.playerDescriptions.find(
+    (p) => p.playerId === otherPlayerId,
+  )?.name;
   const inputRef = useRef<HTMLParagraphElement>(null);
   const inflightUuid = useRef<string | undefined>();
   const writeMessage = useMutation(api.messages.writeMessage);
+  const recordUtterance = useMutation(api.verisim.trustStates.recordUtterance);
   const startTyping = useSendInput(engineId, 'startTyping');
   const currentlyTyping = conversation.isTyping;
 
@@ -72,6 +81,17 @@ export function MessageInput({
       text,
       messageUuid,
     });
+    // Consent-gate mechanic (docs/consent_gate.md): classify what the clinician said to the
+    // patient persona and update their trust state accordingly. Only fires for the designated
+    // patient, not every conversation partner.
+    if (otherPlayerId && otherPlayerName === VERISIM_PATIENT_NAME) {
+      await recordUtterance({
+        worldId,
+        playerId: otherPlayerId,
+        patientName: otherPlayerName,
+        utterance: text,
+      });
+    }
   };
   return (
     <div className="leading-tight mb-6">

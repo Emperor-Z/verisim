@@ -1,4 +1,5 @@
-import { useQuery } from 'convex/react';
+import { useState } from 'react';
+import { useMutation, useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { Id } from '../../convex/_generated/dataModel';
 import closeImg from '../../assets/close.svg';
@@ -9,6 +10,11 @@ import { useSendInput } from '../hooks/sendInput';
 import { Player } from '../../convex/aiTown/player';
 import { GameId } from '../../convex/aiTown/ids';
 import { ServerGame } from '../hooks/serverGame';
+import { TestMenu, type TestMenuItem } from './TestMenu';
+
+// Scenario 01's designated patient persona (data/characters.ts, docs/persona_cards.md) — the only
+// character the consent-gate test menu applies to.
+const VERISIM_PATIENT_NAME = 'Ray';
 
 export default function PlayerDetails({
   worldId,
@@ -47,6 +53,27 @@ export default function PlayerDetails({
   );
 
   const playerDescription = playerId && game.playerDescriptions.get(playerId);
+  const isPatient = playerDescription?.name === VERISIM_PATIENT_NAME;
+
+  const trustState = useQuery(
+    api.verisim.trustStates.getTrustState,
+    playerId && isPatient ? { worldId, playerId } : 'skip',
+  );
+  const dispatchTest = useMutation(api.verisim.trustStates.dispatchTest);
+  const [lastRefusal, setLastRefusal] = useState<string | null>(null);
+  const onRequestTest = async (item: TestMenuItem) => {
+    if (!playerId) return;
+    const decision = await toastOnError(dispatchTest({ worldId, playerId, category: item.category }));
+    if (decision && !decision.permitted) {
+      const refusalLine =
+        decision.reason === 'patient_self_discharged'
+          ? `${playerDescription?.name} has had enough and is leaving against medical advice.`
+          : `${playerDescription?.name} refuses — you haven't earned that yet.`;
+      setLastRefusal(refusalLine);
+    } else {
+      setLastRefusal(null);
+    }
+  };
 
   const startConversation = useSendInput(engineId, 'startConversation');
   const acceptInvite = useSendInput(engineId, 'acceptInvite');
@@ -233,6 +260,16 @@ export default function PlayerDetails({
           )}
         </p>
       </div>
+      {!isMe && isPatient && inConversationWithMe && trustState && (
+        <div className="my-6 flex justify-center">
+          <TestMenu
+            state={trustState}
+            patientName={playerDescription?.name ?? 'the patient'}
+            lastRefusal={lastRefusal}
+            onRequestTest={onRequestTest}
+          />
+        </div>
+      )}
       {!isMe && playerConversation && playerStatus?.kind === 'participating' && (
         <Messages
           worldId={worldId}
