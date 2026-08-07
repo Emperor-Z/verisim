@@ -1,19 +1,37 @@
 # VeriSim Consent-Gate — Design Spec & State Machine
 
-**Status (21 July 2026):** the full mechanic is now implemented at the logic level and unit-tested:
+**Status (8 Aug 2026):** the mechanic is now wired end-to-end at the code level, all three previously
+open wiring-plan steps closed:
 - Trust reducer + gate — `convex/verisim/consentGate.ts` (+ `consentGate.test.ts`, 11 assertions).
 - Free-text event classifier (keyword baseline) — `convex/verisim/eventClassifier.ts`
   (+ `eventClassifier.test.ts`, 18 cases).
 - Session orchestrator + patient-tone prompt hook — `convex/verisim/session.ts`
   (+ `session.test.ts`, 9 assertions; a good clinician earns consent, a clumsy one triggers
   self-discharge).
-- Test-menu UI panel (prop-driven, greys out un-consented tests) — `src/components/TestMenu.tsx`.
+- **Convex persistence** — `convex/verisim/schema.ts` (`verisimTrustStates` table, one row per
+  worldId+playerId, kept deliberately outside the AI Town engine's own tick-owned `worlds`
+  document) and `convex/verisim/trustStates.ts` (`getTrustState` query, `dispatchTest` and
+  `recordUtterance` mutations, wrapping the pure logic above).
+- **Patient agent prompt injection** — `convex/agent/conversation.ts`'s three prompt-builders
+  (`startConversationMessage`, `continueConversationMessage`, `leaveConversationMessage`) now push
+  `trustPromptLine` for the designated patient (`VERISIM_PATIENT_NAME = 'Ray'`) via
+  `verisimTrustPromptLines`.
+- **Test-menu UI panel** — `src/components/TestMenu.tsx` (unchanged, was already prop-driven) is
+  now mounted in `src/components/PlayerDetails.tsx` when the selected/in-conversation player is
+  Ray, wired to `getTrustState`/`dispatchTest`. `src/components/MessageInput.tsx` calls
+  `recordUtterance` after a message is sent to Ray, so player chat drives the trust state.
 
-All pure logic passes `npx tsx`; the panel typechecks under the frontend `tsc`. Validated on the
-local CPU model that injecting the hostile vs consenting prompt line flips Ray from refusing a test
-to agreeing to it. **Still to wire (needs the running engine / Convex state, deferred with GPU):**
-persisting `TrustState` in Convex, feeding `trustPromptLine` into the live agent prompt, and mounting
-`TestMenu` in the game UI. See "Wiring plan" below.
+All pure logic still passes `npx tsx` (`consentGate.test.ts`, `session.test.ts`, unchanged, still
+green). The whole project typechecks clean (`npx tsc --noEmit`) with the new Convex modules
+included. **Not yet validated (needs a running local stack — Docker/Convex backend + Ollama, per
+the "Running the prototype" section of `handoff.md` — unavailable in the environment this wiring
+was written in):** an actual in-browser click-through of the test menu, confirming a refused push
+shows Ray's refusal line, and confirming the trust-state prompt line measurably changes the local
+model's patient-agent dialogue. Also note: `convex/_generated/api.d.ts` was hand-patched to add
+the two new `verisim/schema` and `verisim/trustStates` module entries so `tsc` would pass without a
+live backend to run codegen against — running `npx convex dev --once` will regenerate this file
+properly and should produce an equivalent (or superset) result; if it doesn't, that's the file to
+check first.
 
 ## Why this mechanic exists (research framing)
 
@@ -76,17 +94,25 @@ a test's purpose explained plainly, mirroring the persona-card consent rule.
 - **refused** (`consent_refused`) → patient gives an in-character refusal; trust −15, `refusals++`.
 - **self-discharge** (`patient_self_discharged`) → two refused pushes while hostile ends the scenario.
 
-## Wiring plan (where the code plugs in — not yet built)
+## Wiring plan (steps 1-3 done 8 Aug 2026, code-complete but not runtime-validated; step 4 still open)
 
-1. **Convex:** a `world` per-player field holds `TrustState` for the patient agent. A
-   `dispatchTest` mutation calls `evaluateTestRequest`, persists `decision.state`, and — if
-   permitted — enqueues the measurement result via the existing agent/message path.
-2. **Patient agent prompt:** inject `trust`/`stage` into Ray's identity/plan each turn so his speech
-   tracks the number (the `agentPrompts` builder in `convex/agent/conversation.ts`).
-3. **UI:** a test-menu panel (React, alongside the existing chat UI) greys out `invasive`/`medication`
-   until `consentGiven`; a refused click shows Ray's refusal line.
-4. **Debrief:** log every `TestDecision` + event as the research data trail (Langfuse), feeding the
-   scoring hooks in the persona card.
+1. **Convex — done.** `TrustState` lives in its own `verisimTrustStates` table (not a `world`
+   per-player field — kept outside the AI Town engine's tick-owned document, see
+   `convex/verisim/schema.ts`), keyed by `worldId` + `playerId`. `dispatchTest`
+   (`convex/verisim/trustStates.ts`) calls `evaluateTestRequest` and persists `decision.state`.
+   Not yet done: enqueuing the actual measurement result (ECG/bloods reading) via the
+   agent/message path on a permitted dispatch — `dispatchTest` currently returns the decision to
+   the UI but doesn't yet post a result message into the conversation.
+2. **Patient agent prompt — done.** `trustPromptLine` is injected via `verisimTrustPromptLines`
+   into all three `agentPrompts` call sites in `convex/agent/conversation.ts`, gated to
+   `player.name === 'Ray'`.
+3. **UI — done.** `TestMenu` is mounted in `PlayerDetails.tsx` when Ray is the in-conversation
+   player; `MessageInput.tsx` classifies the human's utterance and calls `recordUtterance` after
+   each message sent to Ray, driving the trust state from real chat input.
+4. **Debrief — still open.** Logging every `TestDecision` + classified event as the research data
+   trail (Langfuse) is not yet built; `dispatchTest`/`recordUtterance` currently only persist the
+   latest state, not a full event log, so the scoring-hook data this step is meant to produce
+   doesn't exist yet.
 
 ## Tuning / difficulty dial
 
