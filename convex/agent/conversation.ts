@@ -7,6 +7,14 @@ import { api, internal } from '../_generated/api';
 import * as embeddingsCache from './embeddingsCache';
 import { GameId, conversationId, playerId } from '../aiTown/ids';
 import { NUM_MEMORIES_TO_SEARCH } from '../constants';
+import { verisimTrustPromptLines } from '../verisim/trustStates';
+
+/**
+ * VeriSim consent-gate mechanic (docs/consent_gate.md): the designated patient persona's own
+ * dialogue tone must track their trust state, so their prompt gets one extra line each turn. Only
+ * gated to this name, not every agent, to avoid injecting an irrelevant line for Kelly/Sam.
+ */
+const VERISIM_PATIENT_NAME = 'Ray';
 
 const selfInternal = internal.agent.conversation;
 
@@ -45,6 +53,9 @@ export async function startConversationMessage(
     `You are ${player.name}, and you just started a conversation with ${otherPlayer.name}.`,
   ];
   prompt.push(...agentPrompts(otherPlayer, agent, otherAgent ?? null));
+  if (player.name === VERISIM_PATIENT_NAME) {
+    prompt.push(...(await verisimTrustPromptLines(ctx, worldId, player)));
+  }
   prompt.push(...previousConversationPrompt(otherPlayer, lastConversation));
   prompt.push(...relatedMemoriesPrompt(memories));
   if (memoryWithOtherPlayer) {
@@ -131,6 +142,9 @@ export async function continueConversationMessage(
     `The conversation started at ${started.toLocaleString()}. It's now ${now.toLocaleString()}.`,
   ];
   prompt.push(...agentPrompts(otherPlayer, agent, otherAgent ?? null));
+  if (player.name === VERISIM_PATIENT_NAME) {
+    prompt.push(...(await verisimTrustPromptLines(ctx, worldId, player)));
+  }
   prompt.push(...relatedMemoriesPrompt(memories));
   prompt.push(
     `The messages below are the current chat history between you and ${otherPlayer.name}.`,
@@ -181,6 +195,9 @@ export async function leaveConversationMessage(
     `You've decided to leave the question and would like to politely tell them you're leaving the conversation.`,
   ];
   prompt.push(...agentPrompts(otherPlayer, agent, otherAgent ?? null));
+  if (player.name === VERISIM_PATIENT_NAME) {
+    prompt.push(...(await verisimTrustPromptLines(ctx, worldId, player)));
+  }
   prompt.push(
     `The messages below are the current chat history between you and ${otherPlayer.name}.`,
     `How would you like to tell them that you're leaving? Your response should be brief and within 200 characters.`,
