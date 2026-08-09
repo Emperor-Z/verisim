@@ -2,7 +2,8 @@ import { v } from 'convex/values';
 import { ActionCtx, DatabaseReader, DatabaseWriter, mutation, query } from '../_generated/server';
 import { Id } from '../_generated/dataModel';
 import { api } from '../_generated/api';
-import { playerId as playerIdValidator, GameId } from '../aiTown/ids';
+import { conversationId as conversationIdValidator, playerId as playerIdValidator, GameId } from '../aiTown/ids';
+import { insertInput } from '../aiTown/insertInput';
 import {
   evaluateTestRequest,
   initialTrustState,
@@ -10,6 +11,7 @@ import {
   type TrustState,
 } from './consentGate';
 import { handlePlayerUtterance, trustPromptLine } from './session';
+import { testResultLine } from './testResults';
 
 /**
  * Convex persistence for the consent-gate mechanic (docs/consent_gate.md, "Wiring plan" steps 1-3).
@@ -29,6 +31,22 @@ async function loadState(
   if (!row) return initialTrustState();
   const { trust, stage, deescalations, plainExplanations, refusals, selfDischarged } = row;
   return { trust, stage, deescalations, plainExplanations, refusals, selfDischarged };
+}
+
+async function logEvent(
+  db: DatabaseWriter,
+  worldId: Id<'worlds'>,
+  playerId: GameId<'players'>,
+  event: {
+    kind: 'utterance' | 'testDispatch';
+    label: string;
+    detail: string;
+    trustBefore: number;
+    trustAfter: number;
+    permitted?: boolean;
+  },
+): Promise<void> {
+  await db.insert('verisimSessionEvents', { worldId, playerId, ...event });
 }
 
 async function saveState(
@@ -55,13 +73,34 @@ export const getTrustState = query({
 });
 
 /**
+ * Debrief data trail (wiring-plan step 4): the full ordered event log for one player's session,
+ * research data for post-session scoring/export (Langfuse or otherwise) — not yet wired to an
+ * external sink, but the event rows now exist to export.
+ */
+export const getSessionEvents = query({
+  args: { worldId: v.id('worlds'), playerId: playerIdValidator },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query('verisimSessionEvents')
+      .withIndex('worldId', (q) => q.eq('worldId', args.worldId).eq('playerId', args.playerId))
+      .collect();
+  },
+});
+
+/**
  * The gate a test-menu click calls. Persists the resulting state either way (a refused push still
- * costs trust) and returns the decision so the UI can show the in-character refusal reason.
+ * costs trust), logs the attempt to the debrief trail, and — on a permitted dispatch — posts the
+ * in-character result reading into the conversation (AgentClinic measurement pattern: the result
+ * only appears once the action is actually dispatched). Returns the decision so the UI can show the
+ * in-character refusal reason.
  */
 export const dispatchTest = mutation({
   args: {
     worldId: v.id('worlds'),
     playerId: playerIdValidator,
+    conversationId: conversationIdValidator,
+    testId: v.string(),
+    testLabel: v.string(),
     category: v.union(v.literal('observation'), v.literal('invasive'), v.literal('medication')),
   },
   handler: async (ctx, args) => {
@@ -69,6 +108,29 @@ export const dispatchTest = mutation({
     const state = await loadState(ctx.db, args.worldId, gamePlayerId);
     const decision = evaluateTestRequest(state, args.category as TestCategory);
     await saveState(ctx.db, args.worldId, gamePlayerId, decision.state);
+    await logEvent(ctx.db, args.worldId, gamePlayerId, {
+      kind: 'testDispatch',
+      label: args.testId,
+      detail: args.testLabel,
+      trustBefore: state.trust,
+      trustAfter: decision.state.trust,
+      permitted: decision.permitted,
+    });
+    if (decision.permitted) {
+      const messageUuid = crypto.randomUUID();
+      await ctx.db.insert('messages', {
+        worldId: args.worldId,
+        conversationId: args.conversationId,
+        author: args.playerId,
+        messageUuid,
+        text: testResultLine(args.testId),
+      });
+      await insertInput(ctx, args.worldId, 'finishSendingMessage', {
+        conversationId: args.conversationId,
+        playerId: args.playerId,
+        timestamp: Date.now(),
+      });
+    }
     return decision;
   },
 });
@@ -91,6 +153,13 @@ export const recordUtterance = mutation({
     const state = await loadState(ctx.db, args.worldId, gamePlayerId);
     const result = handlePlayerUtterance(state, args.utterance, args.patientName);
     await saveState(ctx.db, args.worldId, gamePlayerId, result.state);
+    await logEvent(ctx.db, args.worldId, gamePlayerId, {
+      kind: 'utterance',
+      label: result.event,
+      detail: args.utterance,
+      trustBefore: state.trust,
+      trustAfter: result.state.trust,
+    });
     return result;
   },
 });
