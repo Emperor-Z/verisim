@@ -1,7 +1,7 @@
 # VeriSim Consent-Gate — Design Spec & State Machine
 
-**Status (8 Aug 2026):** the mechanic is now wired end-to-end at the code level, all three previously
-open wiring-plan steps closed:
+**Status (9 Aug 2026):** the mechanic is now wired end-to-end at the code level, all four wiring-plan
+steps closed:
 - Trust reducer + gate — `convex/verisim/consentGate.ts` (+ `consentGate.test.ts`, 11 assertions).
 - Free-text event classifier (keyword baseline) — `convex/verisim/eventClassifier.ts`
   (+ `eventClassifier.test.ts`, 18 cases).
@@ -20,18 +20,31 @@ open wiring-plan steps closed:
   now mounted in `src/components/PlayerDetails.tsx` when the selected/in-conversation player is
   Ray, wired to `getTrustState`/`dispatchTest`. `src/components/MessageInput.tsx` calls
   `recordUtterance` after a message is sent to Ray, so player chat drives the trust state.
+- **Test-result messages** — a permitted `dispatchTest` now posts the in-character reading
+  (`convex/verisim/testResults.ts`, keyed by `TestMenuItem.id`, e.g. the ECG/bloods/obs text) into
+  the conversation as a message authored by Ray, using the same `messages` insert + plain
+  `finishSendingMessage` input transition human messages use (not the agent-lock
+  `agentFinishSendingMessage` path, since this mutation has no `agent.inProgressOperation` to
+  match). Canned per-test text lives server-side so the client only ever sends a test id, never the
+  result content.
+- **Debrief event log** — `convex/verisim/schema.ts`'s new `verisimSessionEvents` table
+  (append-only, one row per classified utterance or test dispatch, `worldId`+`playerId` indexed)
+  and `getSessionEvents` query in `trustStates.ts` give the full research-data trail: event kind,
+  label, trust before/after, and (for test dispatches) whether it was permitted. Not yet exported
+  to an external sink (Langfuse) — the rows exist and are queryable, but nothing pushes them out
+  yet.
 
 All pure logic still passes `npx tsx` (`consentGate.test.ts`, `session.test.ts`, unchanged, still
 green). The whole project typechecks clean (`npx tsc --noEmit`) with the new Convex modules
 included. **Not yet validated (needs a running local stack — Docker/Convex backend + Ollama, per
 the "Running the prototype" section of `handoff.md` — unavailable in the environment this wiring
 was written in):** an actual in-browser click-through of the test menu, confirming a refused push
-shows Ray's refusal line, and confirming the trust-state prompt line measurably changes the local
-model's patient-agent dialogue. Also note: `convex/_generated/api.d.ts` was hand-patched to add
-the two new `verisim/schema` and `verisim/trustStates` module entries so `tsc` would pass without a
-live backend to run codegen against — running `npx convex dev --once` will regenerate this file
-properly and should produce an equivalent (or superset) result; if it doesn't, that's the file to
-check first.
+shows Ray's refusal line, a permitted push posts the result message into the chat, and the
+trust-state prompt line measurably changes the local model's patient-agent dialogue. Also note:
+`convex/_generated/api.d.ts` was hand-patched to add the new `verisim/schema`, `verisim/trustStates`,
+and `verisim/testResults` module entries so `tsc` would pass without a live backend to run codegen
+against — running `npx convex dev --once` will regenerate this file properly and should produce an
+equivalent (or superset) result; if it doesn't, that's the file to check first.
 
 ## Why this mechanic exists (research framing)
 
@@ -94,25 +107,24 @@ a test's purpose explained plainly, mirroring the persona-card consent rule.
 - **refused** (`consent_refused`) → patient gives an in-character refusal; trust −15, `refusals++`.
 - **self-discharge** (`patient_self_discharged`) → two refused pushes while hostile ends the scenario.
 
-## Wiring plan (steps 1-3 done 8 Aug 2026, code-complete but not runtime-validated; step 4 still open)
+## Wiring plan (all 4 steps code-complete 9 Aug 2026, not yet runtime-validated)
 
 1. **Convex — done.** `TrustState` lives in its own `verisimTrustStates` table (not a `world`
    per-player field — kept outside the AI Town engine's tick-owned document, see
    `convex/verisim/schema.ts`), keyed by `worldId` + `playerId`. `dispatchTest`
-   (`convex/verisim/trustStates.ts`) calls `evaluateTestRequest` and persists `decision.state`.
-   Not yet done: enqueuing the actual measurement result (ECG/bloods reading) via the
-   agent/message path on a permitted dispatch — `dispatchTest` currently returns the decision to
-   the UI but doesn't yet post a result message into the conversation.
+   (`convex/verisim/trustStates.ts`) calls `evaluateTestRequest`, persists `decision.state`, and on
+   a permitted dispatch inserts the canned result reading (`convex/verisim/testResults.ts`) as a
+   message from Ray via the same `messages` table + `finishSendingMessage` input human messages use.
 2. **Patient agent prompt — done.** `trustPromptLine` is injected via `verisimTrustPromptLines`
    into all three `agentPrompts` call sites in `convex/agent/conversation.ts`, gated to
    `player.name === 'Ray'`.
 3. **UI — done.** `TestMenu` is mounted in `PlayerDetails.tsx` when Ray is the in-conversation
    player; `MessageInput.tsx` classifies the human's utterance and calls `recordUtterance` after
    each message sent to Ray, driving the trust state from real chat input.
-4. **Debrief — still open.** Logging every `TestDecision` + classified event as the research data
-   trail (Langfuse) is not yet built; `dispatchTest`/`recordUtterance` currently only persist the
-   latest state, not a full event log, so the scoring-hook data this step is meant to produce
-   doesn't exist yet.
+4. **Debrief — done, not yet exported.** Every classified utterance and test dispatch is now
+   appended to `verisimSessionEvents` (label, detail, trust before/after, permitted flag), readable
+   via `getSessionEvents`. Still open: actually pushing this trail to an external sink (Langfuse) —
+   the data exists and is queryable but nothing exports it yet.
 
 ## Tuning / difficulty dial
 
