@@ -54,6 +54,7 @@ import type * as verisim_consentGate from "../verisim/consentGate.js";
 import type * as verisim_eventClassifier from "../verisim/eventClassifier.js";
 import type * as verisim_schema from "../verisim/schema.js";
 import type * as verisim_session from "../verisim/session.js";
+import type * as verisim_testResults from "../verisim/testResults.js";
 import type * as verisim_trustStates from "../verisim/trustStates.js";
 import type * as world from "../world.js";
 
@@ -110,6 +111,7 @@ declare const fullApi: ApiFromModules<{
   "verisim/eventClassifier": typeof verisim_eventClassifier;
   "verisim/schema": typeof verisim_schema;
   "verisim/session": typeof verisim_session;
+  "verisim/testResults": typeof verisim_testResults;
   "verisim/trustStates": typeof verisim_trustStates;
   world: typeof world;
 }>;
