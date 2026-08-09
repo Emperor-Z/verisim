@@ -62,8 +62,17 @@ export default function PlayerDetails({
   const dispatchTest = useMutation(api.verisim.trustStates.dispatchTest);
   const [lastRefusal, setLastRefusal] = useState<string | null>(null);
   const onRequestTest = async (item: TestMenuItem) => {
-    if (!playerId) return;
-    const decision = await toastOnError(dispatchTest({ worldId, playerId, category: item.category }));
+    if (!playerId || !playerConversation) return;
+    const decision = await toastOnError(
+      dispatchTest({
+        worldId,
+        playerId,
+        conversationId: playerConversation.id,
+        testId: item.id,
+        testLabel: item.label,
+        category: item.category,
+      }),
+    );
     if (decision && !decision.permitted) {
       const refusalLine =
         decision.reason === 'patient_self_discharged'
