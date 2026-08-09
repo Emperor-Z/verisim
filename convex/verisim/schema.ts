@@ -19,4 +19,21 @@ export const verisimTables = {
     refusals: v.number(),
     selfDischarged: v.boolean(),
   }).index('worldId', ['worldId', 'playerId']),
+
+  /**
+   * Debrief data trail (wiring-plan step 4, docs/consent_gate.md): one row per classified utterance
+   * or test dispatch, so a session can be replayed/scored after the fact. Append-only — never
+   * patched, unlike verisimTrustStates.
+   */
+  verisimSessionEvents: defineTable({
+    worldId: v.id('worlds'),
+    playerId,
+    kind: v.union(v.literal('utterance'), v.literal('testDispatch')),
+    // utterance: the classified event; testDispatch: the requested category.
+    label: v.string(),
+    detail: v.string(), // raw utterance text, or the test id/label
+    trustBefore: v.number(),
+    trustAfter: v.number(),
+    permitted: v.optional(v.boolean()), // testDispatch only
+  }).index('worldId', ['worldId', 'playerId']),
 };
