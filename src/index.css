@@ -45,13 +45,7 @@ body {
 }
 
 .game-background {
-  background: linear-gradient(rgba(41, 41, 41, 0.8), rgba(41, 41, 41, 0.8)),
-    url(../assets/background.webp);
-  background-blend-mode: hard-light;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: cover;
-  background-attachment: fixed;
+  background: #1c2128;
 }
 
 .game-title {
@@ -63,10 +57,10 @@ body {
 }
 
 .game-frame {
-  border-width: 36px;
-  border-image-source: url(../assets/ui/frame.svg);
-  border-image-repeat: stretch;
-  border-image-slice: 25%;
+  border-width: 6px;
+  border-style: solid;
+  border-color: #0d1014;
+  border-radius: 10px;
 }
 
 .game-progress-bar {
@@ -88,7 +82,7 @@ body {
 
 @media screen and (min-width: 640px) {
   .game-frame {
-    border-width: 48px;
+    border-width: 8px;
   }
 }
 
