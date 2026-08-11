@@ -69,6 +69,10 @@ Other credits:
 - Tilesheet:
   - https://opengameart.org/content/16x16-game-assets by George Bailey
   - https://opengameart.org/content/16x16-rpg-tileset by hilau
+  - The A&E ward map (`data/aeBay.js`) uses tiles from
+    [JackBurton84's Pixel Hospital Tileset](https://jackburton84.itch.io/pixel-hospital-tileset-modern-medical-pixel-art-32x32)
+    (free, commercial use permitted — see `public/assets/ae-bay-tileset-license.txt`), mixed with a
+    few hand-drawn fill-in tiles.
 - We used https://github.com/pierpo/phaser3-simple-rpg for the original POC of this project. We have
   since re-wrote the whole app, but appreciated the easy starting point
 - Original assets by [ansimuz](https://opengameart.org/content/tiny-rpg-forest)
@@ -304,8 +308,9 @@ all of your data.
    You should find a sprite sheet for your character, and define sprite motion / assets in the
    corresponding file (in the above example, `f1SpritesheetData` was defined in f1.ts)
 
-3. Update the Background (Environment): The map gets loaded in `convex/init.ts` from
-   `data/gentle.js`. To update the map, follow these steps:
+3. Update the Background (Environment): The map gets loaded in `convex/init.ts` — currently from
+   `data/aeBay.js` (the A&E ward layout; the original village map is still present at
+   `data/gentle.js` if you want to compare formats). To update the map, follow these steps:
 
    - Use [Tiled](https://www.mapeditor.org/) to export tilemaps as a JSON file (2 layers named
      bgtiles and objmap)

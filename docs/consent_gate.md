@@ -36,15 +36,23 @@ steps closed:
 
 All pure logic still passes `npx tsx` (`consentGate.test.ts`, `session.test.ts`, unchanged, still
 green). The whole project typechecks clean (`npx tsc --noEmit`) with the new Convex modules
-included. **Not yet validated (needs a running local stack — Docker/Convex backend + Ollama, per
-the "Running the prototype" section of `handoff.md` — unavailable in the environment this wiring
-was written in):** an actual in-browser click-through of the test menu, confirming a refused push
-shows Ray's refusal line, a permitted push posts the result message into the chat, and the
-trust-state prompt line measurably changes the local model's patient-agent dialogue. Also note:
-`convex/_generated/api.d.ts` was hand-patched to add the new `verisim/schema`, `verisim/trustStates`,
-and `verisim/testResults` module entries so `tsc` would pass without a live backend to run codegen
-against — running `npx convex dev --once` will regenerate this file properly and should produce an
-equivalent (or superset) result; if it doesn't, that's the file to check first.
+included.
+
+**Update (11 Aug 2026):** the local Docker Compose stack (see README's "Using Docker Compose with
+self-hosted Convex") was run for the first time this project has had it available, and `npx convex
+deploy` was run against it for real — this confirmed the hand-patched `convex/_generated/api.d.ts`
+entries were correct (and caught one mistake: `verisim/schema` had been hand-added but shouldn't
+have been, since it exports no functions — real codegen dropped it, which is correct). The file no
+longer needs hand-patching as a rule; it's regenerated automatically by `npx convex deploy` /
+`npx convex dev` whenever a live backend is available.
+
+**Still not validated:** an actual in-browser click-through of the test menu, confirming a refused
+push shows Ray's refusal line, a permitted push posts the result message into the chat, and the
+trust-state prompt line measurably changes the local model's patient-agent dialogue. Ollama wasn't
+brought up alongside the Convex backend this session, so the agents/LLM side of the loop is still
+unexercised — only the map/schema/data layer was validated. Headless browser automation (synthetic
+mouse events) proved too unreliable to navigate the in-game camera precisely enough to click a
+specific character, so this genuinely needs a human clicking through it in a real browser.
 
 ## Why this mechanic exists (research framing)
 
