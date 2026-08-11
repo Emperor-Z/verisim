@@ -52,7 +52,7 @@ import type * as util_types from "../util/types.js";
 import type * as util_xxhash from "../util/xxhash.js";
 import type * as verisim_consentGate from "../verisim/consentGate.js";
 import type * as verisim_eventClassifier from "../verisim/eventClassifier.js";
-import type * as verisim_schema from "../verisim/schema.js";
+import type * as verisim_mapPatch from "../verisim/mapPatch.js";
 import type * as verisim_session from "../verisim/session.js";
 import type * as verisim_testResults from "../verisim/testResults.js";
 import type * as verisim_trustStates from "../verisim/trustStates.js";
@@ -109,7 +109,7 @@ declare const fullApi: ApiFromModules<{
   "util/xxhash": typeof util_xxhash;
   "verisim/consentGate": typeof verisim_consentGate;
   "verisim/eventClassifier": typeof verisim_eventClassifier;
-  "verisim/schema": typeof verisim_schema;
+  "verisim/mapPatch": typeof verisim_mapPatch;
   "verisim/session": typeof verisim_session;
   "verisim/testResults": typeof verisim_testResults;
   "verisim/trustStates": typeof verisim_trustStates;
