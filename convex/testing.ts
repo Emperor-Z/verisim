@@ -100,6 +100,26 @@ export const resume = mutation({
   },
 });
 
+export const forcePositions = internalMutation({
+  args: {
+    positions: v.array(v.object({ playerId: v.string(), x: v.number(), y: v.number() })),
+  },
+  handler: async (ctx, args) => {
+    const { worldStatus } = await getDefaultWorld(ctx.db);
+    const world = await ctx.db.get(worldStatus.worldId);
+    if (!world) {
+      throw new Error(`No world for ${worldStatus.worldId}`);
+    }
+    const byId = new Map(args.positions.map((p) => [p.playerId, p]));
+    const players = world.players.map((p: any) => {
+      const override = byId.get(p.id);
+      if (!override) return p;
+      return { ...p, position: { x: override.x, y: override.y }, speed: 0 };
+    });
+    await ctx.db.patch(world._id, { players });
+  },
+});
+
 export const archive = internalMutation({
   handler: async (ctx) => {
     const { worldStatus, engine } = await getDefaultWorld(ctx.db);
