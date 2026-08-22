@@ -120,6 +120,126 @@ export const forcePositions = internalMutation({
   },
 });
 
+// Demo-only helper: directly stage an active conversation between two players, bypassing the
+// walk-over/accept state machine (which races against the agents' own autonomous wander loop —
+// see docs/consent_gate.md and ARCHITECTURE_AND_VALIDATION.md §4.2/§4.4). Used only to produce a
+// scripted screenshot/video sequence for the interview pack; not part of evaluated behaviour.
+export const forceConversation = internalMutation({
+  args: {
+    conversationId: v.string(),
+    creator: v.string(),
+    participantIds: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { worldStatus } = await getDefaultWorld(ctx.db);
+    const world = await ctx.db.get(worldStatus.worldId);
+    if (!world) throw new Error('No world');
+    const now = Date.now();
+    const conversation = {
+      id: args.conversationId,
+      creator: args.creator,
+      created: now,
+      numMessages: 0,
+      participants: args.participantIds.map((playerId) => ({
+        playerId,
+        invited: now,
+        status: { kind: 'participating' as const, started: now },
+      })),
+    };
+    // Demo world only ever needs one staged conversation at a time — replace outright rather than
+    // accumulate, so a bad id from an earlier take can't linger and crash the client parser.
+    await ctx.db.patch(world._id, { conversations: [conversation] });
+  },
+});
+
+export const forceMessage = internalMutation({
+  args: {
+    worldId: v.id('worlds'),
+    conversationId: v.string(),
+    playerId: v.string(),
+    text: v.string(),
+    messageUuid: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.insert('messages', {
+      conversationId: args.conversationId as any,
+      author: args.playerId as any,
+      messageUuid: args.messageUuid,
+      text: args.text,
+      worldId: args.worldId,
+    });
+    const { worldStatus } = await getDefaultWorld(ctx.db);
+    const world = await ctx.db.get(worldStatus.worldId);
+    if (!world) throw new Error('No world');
+    const conversations = world.conversations.map((c: any) =>
+      c.id === args.conversationId
+        ? {
+            ...c,
+            numMessages: (c.numMessages ?? 0) + 1,
+            lastMessage: { author: args.playerId, timestamp: Date.now() },
+          }
+        : c,
+    );
+    await ctx.db.patch(world._id, { conversations });
+  },
+});
+
+// Demo-only: reset a player's persisted consent-gate TrustState back to baseline, e.g. between
+// scripted demo takes. Not part of evaluated behaviour.
+export const resetTrustState = internalMutation({
+  args: { worldId: v.id('worlds'), playerId: v.string() },
+  handler: async (ctx, args) => {
+    const row = await ctx.db
+      .query('verisimTrustStates')
+      .withIndex('worldId', (q) => q.eq('worldId', args.worldId).eq('playerId', args.playerId as any))
+      .first();
+    if (row) await ctx.db.delete(row._id);
+    const events = await ctx.db
+      .query('verisimSessionEvents')
+      .withIndex('worldId', (q) => q.eq('worldId', args.worldId).eq('playerId', args.playerId as any))
+      .collect();
+    for (const e of events) await ctx.db.delete(e._id);
+  },
+});
+
+// Demo-only: add a human player directly, bypassing the input queue/engine tick — needed because
+// the engine loop was found tonight to stall indefinitely (see ARCHITECTURE_AND_VALIDATION.md),
+// which blocks the normal joinWorld input from ever being processed.
+export const forceJoinHuman = internalMutation({
+  args: { playerId: v.string(), x: v.number(), y: v.number() },
+  handler: async (ctx, args) => {
+    const { worldStatus } = await getDefaultWorld(ctx.db);
+    const world = await ctx.db.get(worldStatus.worldId);
+    if (!world) throw new Error('No world');
+    if (world.players.some((p: any) => p.id === args.playerId)) return;
+    const players = [
+      ...world.players,
+      {
+        id: args.playerId,
+        human: 'Me',
+        lastInput: Date.now(),
+        position: { x: args.x, y: args.y },
+        facing: { dx: 0, dy: 1 },
+        speed: 0,
+      },
+    ];
+    await ctx.db.patch(world._id, { players });
+    const descRow = await ctx.db
+      .query('playerDescriptions')
+      .withIndex('worldId', (q) => q.eq('worldId', world._id).eq('playerId', args.playerId as any))
+      .first();
+    if (!descRow) {
+      await ctx.db.insert('playerDescriptions', {
+        worldId: world._id,
+        playerId: args.playerId as any,
+        name: 'Dr. Ashad',
+        character: 'f4',
+        description: 'You are the clinician assessing Ray in A&E Bay 3.',
+      });
+    }
+  },
+});
+
 export const archive = internalMutation({
   handler: async (ctx) => {
     const { worldStatus, engine } = await getDefaultWorld(ctx.db);
@@ -218,5 +338,38 @@ export const testConvo = internalAction({
       'p:6' as GameId<'players'>,
     )) as any;
     return await a.readAll();
+  },
+});
+
+export const removePlayer = internalMutation({
+  args: { playerId: v.string() },
+  handler: async (ctx, args) => {
+    const { worldStatus } = await getDefaultWorld(ctx.db);
+    const world = await ctx.db.get(worldStatus.worldId);
+    if (!world) throw new Error('No world');
+    const players = world.players.filter((p: any) => p.id !== args.playerId);
+    await ctx.db.patch(world._id, { players });
+  },
+});
+
+export const removePlayerDescription = internalMutation({
+  args: { worldId: v.id('worlds'), playerId: v.string() },
+  handler: async (ctx, args) => {
+    const rows = await ctx.db
+      .query('playerDescriptions')
+      .withIndex('worldId', (q) => q.eq('worldId', args.worldId).eq('playerId', args.playerId as any))
+      .collect();
+    for (const r of rows) await ctx.db.delete(r._id);
+  },
+});
+
+export const clearMessagesForConversation = internalMutation({
+  args: { worldId: v.id('worlds'), conversationId: v.string() },
+  handler: async (ctx, args) => {
+    const rows = await ctx.db
+      .query('messages')
+      .withIndex('conversationId', (q) => q.eq('worldId', args.worldId).eq('conversationId', args.conversationId as any))
+      .collect();
+    for (const r of rows) await ctx.db.delete(r._id);
   },
 });
