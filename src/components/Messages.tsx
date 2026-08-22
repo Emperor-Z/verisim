@@ -154,12 +154,17 @@ export function Messages({
           </div>
         )}
         {humanPlayer && inConversationWithMe && conversation.kind === 'active' && (
+          // Sticky rather than inline: the panel above (persona summary, test menu, message
+          // history) scrolls as one block, and a clinician mid-conversation shouldn't have to
+          // scroll past a growing transcript to find where to type.
+          <div className="sticky bottom-0 bg-brown-200 pt-2 -mx-2 px-2">
           <MessageInput
             worldId={worldId}
             engineId={engineId}
             conversation={conversation.doc}
             humanPlayer={humanPlayer}
           />
+          </div>
         )}
       </div>
     </div>

@@ -64,10 +64,13 @@ export const DELETE_BATCH_SIZE = 64;
 
 export const HUMAN_IDLE_TOO_LONG = 5 * 60 * 1000;
 
+// VeriSim Scenario 01 idle flavour — replaces the inherited AI Town village activities
+// (reading/daydreaming/gardening, including a carrot emoji that read as out of place in a
+// clinical scene) with text appropriate to a patient/family member/nurse waiting in A&E Bay 3.
 export const ACTIVITIES = [
-  { description: 'reading a book', emoji: '📖', duration: 60_000 },
-  { description: 'daydreaming', emoji: '🤔', duration: 60_000 },
-  { description: 'gardening', emoji: '🥕', duration: 60_000 },
+  { description: 'waiting anxiously', emoji: '😟', duration: 60_000 },
+  { description: 'checking observations', emoji: '🩺', duration: 60_000 },
+  { description: 'sitting quietly', emoji: '💺', duration: 60_000 },
 ];
 
 export const ENGINE_ACTION_DURATION = 30000;
