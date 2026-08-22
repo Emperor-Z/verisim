@@ -37,11 +37,13 @@ export default PixiComponent('Viewport', {
       .wheel()
       .decelerate()
       .clamp({ direction: 'all', underflow: 'center' })
-      .setZoom(-10)
       .clampZoom({
         minScale: (1.04 * props.screenWidth) / (props.worldWidth / 2),
-        maxScale: 3.0,
-      });
+        maxScale: 4.0,
+      })
+      // Closer default camera for the single-bay VeriSim scenario (was a wide AI-Town-village
+      // zoom level unsuited to a small consultation room).
+      .setZoom(2.4, true);
     return viewport;
   },
   applyProps(viewport, oldProps: any, newProps: any) {

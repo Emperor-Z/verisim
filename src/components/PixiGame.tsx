@@ -93,6 +93,13 @@ export const PixiGame = (props: {
     });
   }, [humanPlayerId]);
 
+  // Before anyone has joined, frame Bay 3 itself rather than the map's top-left corner — this is
+  // a single-room scenario, not a village the camera should default to a corner of.
+  useEffect(() => {
+    if (!viewportRef.current || humanPlayerId !== undefined) return;
+    viewportRef.current.moveCenter(new PIXI.Point(10 * tileDim, 10 * tileDim));
+  }, [humanPlayerId]);
+
   return (
     <PixiViewport
       app={pixiApp}

@@ -16,6 +16,15 @@ import { TestMenu, type TestMenuItem } from './TestMenu';
 // character the consent-gate test menu applies to.
 const VERISIM_PATIENT_NAME = 'Ray';
 
+// Clinician-facing summary shown in the side panel instead of the full internal persona/behaviour
+// script (data/characters.ts `identity`) — that text encodes de-escalation triggers and hidden
+// history the clinician is meant to discover through conversation, not read off a card.
+const CLINICAL_SUMMARIES: Record<string, string> = {
+  Ray: '58, male. Self-employed builder. Presents with central chest tightness, onset ~2h ago, radiating to the left arm.',
+  Kelly: "29, female. Patient's daughter, present at bedside.",
+  Sam: '34. A&E staff nurse, covering Bay 3 and three other bays.',
+};
+
 export default function PlayerDetails({
   worldId,
   engineId,
@@ -259,7 +268,8 @@ export default function PlayerDetails({
       )}
       <div className="desc my-6">
         <p className="leading-tight -m-4 bg-brown-700 text-base sm:text-sm">
-          {!isMe && playerDescription?.description}
+          {!isMe &&
+            (CLINICAL_SUMMARIES[playerDescription?.name ?? ''] ?? playerDescription?.description)}
           {isMe && <i>This is you!</i>}
           {!isMe && inConversationWithMe && (
             <>
