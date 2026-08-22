@@ -187,11 +187,14 @@ export class Player {
         throw new Error(`Only ${MAX_HUMAN_PLAYERS} human players allowed at once.`);
       }
     }
+    // VeriSim Scenario 01 is a single consultation room (Bay 3, data/aeBay.js floor tiles
+    // x:5-13, y:4-12) — the clinician should join inside it, not at a random point on the
+    // inherited AI Town map (see ARCHITECTURE_AND_VALIDATION.md §4.4).
     let position;
     for (let attempt = 0; attempt < 10; attempt++) {
       const candidate = {
-        x: Math.floor(Math.random() * game.worldMap.width),
-        y: Math.floor(Math.random() * game.worldMap.height),
+        x: 6 + Math.floor(Math.random() * 6),
+        y: 5 + Math.floor(Math.random() * 6),
       };
       if (blocked(game, now, candidate)) {
         continue;
