@@ -37,6 +37,8 @@ TOP_H, MID_H, KICK_H = TD, TD, 8
 H = TOP_H + MID_H + KICK_H
 
 C = {
+    'shadow_tint': (46, 48, 92),
+    'hilite_tint': (255, 226, 168),
     'wall_hi':    (255, 250, 238),
     'wall':       (248, 240, 222),
     'wall_lo':    (226, 214, 190),
@@ -115,9 +117,9 @@ def base_wall(cv):
     _speckle(cv, 0, 0, W - 1, TOP_H - 1, seed=21)
 
     y0 = TOP_H
-    cv.hline(0, W - 1, y0, mix(C['dado'], (255, 255, 255), 0.35))
+    cv.hline(0, W - 1, y0, mix(C['dado'], C['hilite_tint'], 0.35))
     cv.hline(0, W - 1, y0 + 1, C['dado'])
-    cv.hline(0, W - 1, y0 + 2, mix(C['dado'], (0, 0, 0), 0.25))
+    cv.hline(0, W - 1, y0 + 2, mix(C['dado'], C['shadow_tint'], 0.35))
     cv.hline(0, W - 1, y0 + 3, C['wall_hi'])
     cv.rect(0, y0 + 4, W - 1, y0 + MID_H - 8, C['wall'])
     _speckle(cv, 0, y0 + 4, W - 1, y0 + MID_H - 8, seed=22)
@@ -130,7 +132,7 @@ def base_wall(cv):
     ky0 = TOP_H + MID_H
     for i in range(KICK_H):
         t = i / max(1, KICK_H - 1)
-        shade = tuple(round(a + (b - a) * t) for a, b in zip(C['skirt_lo'], (44, 52, 54)))
+        shade = tuple(round(a + (b - a) * t) for a, b in zip(C['skirt_lo'], C['shadow_tint']))
         cv.hline(0, W - 1, ky0 + i, shade)
     cv.hline(0, W - 1, ky0, C['skirt_lo'])
 

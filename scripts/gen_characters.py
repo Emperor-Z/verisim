@@ -64,6 +64,11 @@ P = {
     'grey_hair_d': (132, 126, 135),
 }
 
+# Selective-outlining / hue-shift targets: shadows lean cool blue-violet, highlights lean
+# warm cream, rather than sliding every colour toward neutral black or white.
+SHADOW_TINT = (46, 48, 92)
+HILITE_TINT = (255, 226, 168)
+
 
 class Px:
     """A scratch frame with clipped plotting and region shifting."""
@@ -96,18 +101,34 @@ class Px:
         for (x, y), c in moved.items():
             self.set(x, y, c)
 
-    def outline_alpha(self, col, skip=()):
-        """1px dark keyline around the silhouette, so figures read against the floor."""
-        edge = set()
+    def outline_alpha(self, col, skip=(), col_lit=None):
+        """
+        1px keyline around the silhouette, so figures read against the floor.
+
+        Selective outlining ("selout"): where the keyline sits on the same side as the
+        key light — above or to the left of the shape it borders — it's drawn in a
+        lighter, warmer tone instead of the flat dark one. A uniform outline reads as a
+        hard sticker edge; softening just the lit side is what makes an outlined sprite
+        read as lit from a direction rather than just outlined.
+        """
+        # For each outline pixel, collect which side(s) of solid fill it borders. Key
+        # light is upper-left, so a pixel bordering fill on its left (-1,0) or top (0,-1)
+        # is on the lit side; one bordering fill on its right (1,0) or bottom (0,1) is on
+        # the shadow side. A corner pixel bordering both stays on the dark tone.
+        directions = {}
         for (x, y) in self.d:
             if (x, y) in skip:
                 continue
             for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-                if (x + dx, y + dy) not in self.d:
-                    edge.add((x + dx, y + dy))
-        for (x, y) in edge:
-            if (x, y) not in skip:
-                self.set(x, y, col)
+                n = (x + dx, y + dy)
+                if n not in self.d:
+                    directions.setdefault(n, set()).add((dx, dy))
+        for (x, y), dirs in directions.items():
+            if (x, y) in skip:
+                continue
+            lit = any(d in ((-1, 0), (0, -1)) for d in dirs) and \
+                not any(d in ((1, 0), (0, 1)) for d in dirs)
+            self.set(x, y, col_lit if (lit and col_lit) else col)
 
     def to_image(self):
         img = Image.new('RGBA', (FRAME_W, FRAME_H), (0, 0, 0, 0))
@@ -207,10 +228,10 @@ def draw_torso(p, direction, garment, garment_d, build=0):
     for y in range(TORSO_TOP, TORSO_BOT + 1):
         h = torso_half(y, direction, build)
         p.set(CX - 1 + h, y, garment_d)
-        p.set(CX - h, y, mix(garment, (255, 255, 255), 0.18))
+        p.set(CX - h, y, mix(garment, HILITE_TINT, 0.18))
     # Shoulder highlight, waist crease and hem shadow.
     h = torso_half(TORSO_TOP, direction, build)
-    p.hline(CX - h + 1, CX - 2 + h, TORSO_TOP, mix(garment, (255, 255, 255), 0.3))
+    p.hline(CX - h + 1, CX - 2 + h, TORSO_TOP, mix(garment, HILITE_TINT, 0.3))
     waist_y = TORSO_TOP + round(span * 0.5)
     h = torso_half(waist_y, direction, build)
     p.hline(CX - h + 1, CX - 2 + h, waist_y, mix(garment, garment_d, 0.5))
@@ -275,8 +296,8 @@ def draw_face(p, direction, skin_s, eye=None, brow=False):
     if direction == 'down':
         p.vline(12, ey, ey + 1, eye)
         p.vline(19, ey, ey + 1, eye)
-        p.set(12, ey, mix(eye, (255, 255, 255), 0.35))
-        p.set(19, ey, mix(eye, (255, 255, 255), 0.35))
+        p.set(12, ey, mix(eye, HILITE_TINT, 0.35))
+        p.set(19, ey, mix(eye, HILITE_TINT, 0.35))
         p.hline(15, 16, ey + 4, skin_s)          # mouth
         if brow:
             p.hline(11, 13, ey - 2, skin_s)
@@ -369,7 +390,7 @@ def draw_hair(p, direction, style, hair, hair_d, wide=0):
 
 def hair_highlight(p, direction, hair):
     """A sheen across the upper-left of the hair mass, so it reads as a rounded head."""
-    lit = mix(hair, (255, 255, 255), 0.34)
+    lit = mix(hair, HILITE_TINT, 0.34)
     for y in range(HEAD_TOP + 1, HEAD_TOP + 4):
         h = head_half(y, direction)
         for x in range(CX - h + 1, CX - h + 5):
@@ -511,8 +532,8 @@ def key_light(p, skip):
             lit.append((x, y))
         elif (x, y + 1) not in solid or (x + 1, y) not in solid:
             shaded.append((x, y))
-    for (x, y), col, a in [(c, (255, 255, 255), 0.22) for c in lit] + \
-                          [(c, (40, 48, 52), 0.20) for c in shaded]:
+    for (x, y), col, a in [(c, HILITE_TINT, 0.22) for c in lit] + \
+                          [(c, SHADOW_TINT, 0.20) for c in shaded]:
         base = p.d[(x, y)][:3]
         p.set(x, y, tuple(round(b + (c - b) * a) for b, c in zip(base, col)))
 
@@ -535,7 +556,7 @@ def build_frame(spec, direction, frame):
     draw_face(p, direction, spec['skin_s'], brow=spec.get('brow', False))
     draw_accessory(p, spec['accessory'], direction, spec['build'])
 
-    p.outline_alpha(P['outline'], skip=shadow)
+    p.outline_alpha(P['outline'], skip=shadow, col_lit=mix(P['outline'], HILITE_TINT, 0.4))
     key_light(p, shadow)
     return p.to_image()
 

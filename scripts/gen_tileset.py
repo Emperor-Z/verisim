@@ -31,6 +31,12 @@ C = {
     'patient_hair':    (167, 183, 191),
     'patient_hair_lo': (132, 126, 135),
 
+    # Selective-outlining / hue-shift targets, matching gen_characters.py: shadows lean
+    # cool blue-violet, highlights lean warm cream, instead of sliding toward neutral
+    # black/white — a flat lerp-to-white/black is what reads as flat/plasticky.
+    'shadow_tint': (46, 48, 92),
+    'hilite_tint': (255, 226, 168),
+
     # Vinyl flooring — pale, desaturated, slightly green. Deliberately low contrast:
     # the floor is the largest surface on screen and must sit behind the characters.
     'floor':      (214, 226, 236),
@@ -167,9 +173,9 @@ class Tile:
                 if not solid(x, y):
                     continue
                 if not solid(x, y - 1) or not solid(x - 1, y):
-                    self.shade(x, y, (255, 255, 255), top)
+                    self.shade(x, y, C['hilite_tint'], top)
                 elif not solid(x, y + 1) or not solid(x + 1, y):
-                    self.shade(x, y, (40, 48, 52), bottom)
+                    self.shade(x, y, C['shadow_tint'], bottom)
 
     def frame(self, x0, y0, x1, y1, col):
         self.hline(x0, x1, y0, col)
@@ -241,9 +247,9 @@ def wall_lower(seed=2):
     own bevel (a lit top edge, a groove, a shadowed underside), not a single flat line.
     """
     t = Tile(C['wall'])
-    t.hline(0, TD - 1, 0, mix(C['dado'], (255, 255, 255), 0.35))   # rail: lit top edge
+    t.hline(0, TD - 1, 0, mix(C['dado'], C['hilite_tint'], 0.35))   # rail: lit top edge
     t.hline(0, TD - 1, 1, C['dado'])
-    t.hline(0, TD - 1, 2, mix(C['dado'], (0, 0, 0), 0.25))          # groove
+    t.hline(0, TD - 1, 2, mix(C['dado'], C['shadow_tint'], 0.35))          # groove
     t.hline(0, TD - 1, 3, C['wall_hi'])
     t.rect(0, 4, TD - 1, TD - 8, C['wall'])
     _wall_speckle(t, seed)
@@ -261,9 +267,9 @@ def wall_side(left=True, seed=3):
     """
     t = Tile(C['wall'])
     if left:
-        t.vline(TD - 1, 0, TD - 1, mix(C['dado'], (255, 255, 255), 0.35))
+        t.vline(TD - 1, 0, TD - 1, mix(C['dado'], C['hilite_tint'], 0.35))
         t.vline(TD - 2, 0, TD - 1, C['dado'])
-        t.vline(TD - 3, 0, TD - 1, mix(C['dado'], (0, 0, 0), 0.25))
+        t.vline(TD - 3, 0, TD - 1, mix(C['dado'], C['shadow_tint'], 0.35))
         t.vline(TD - 4, 0, TD - 1, C['wall_hi'])
         t.rect(TD - 9, 0, TD - 5, TD - 1, C['wall'])
         t.vline(TD - 10, 0, TD - 1, C['wall_lo'])
@@ -271,9 +277,9 @@ def wall_side(left=True, seed=3):
         t.vline(TD - 11, 0, TD - 1, C['skirt_hi'])
         t.vline(TD - 16, 0, TD - 1, (98, 108, 106))
     else:
-        t.vline(0, 0, TD - 1, mix(C['dado'], (255, 255, 255), 0.35))
+        t.vline(0, 0, TD - 1, mix(C['dado'], C['hilite_tint'], 0.35))
         t.vline(1, 0, TD - 1, C['dado'])
-        t.vline(2, 0, TD - 1, mix(C['dado'], (0, 0, 0), 0.25))
+        t.vline(2, 0, TD - 1, mix(C['dado'], C['shadow_tint'], 0.35))
         t.vline(3, 0, TD - 1, C['wall_hi'])
         t.rect(4, 0, 8, TD - 1, C['wall'])
         t.vline(9, 0, TD - 1, C['wall_lo'])
@@ -288,7 +294,7 @@ def curtain_rail():
     """Ceiling track the cubicle curtain hangs from, with hook fittings along it."""
     t = Tile(C['wall'])
     t.rect(0, 5, TD - 1, 8, C['rail'])
-    t.hline(0, TD - 1, 5, mix(C['rail'], (255, 255, 255), 0.3))
+    t.hline(0, TD - 1, 5, mix(C['rail'], C['hilite_tint'], 0.3))
     t.hline(0, TD - 1, 8, C['rail_lo'])
     for x in range(1, TD, 5):
         t.vline(x, 9, 11, C['rail_lo'])          # hook stems
@@ -339,7 +345,7 @@ def curtain(variant=0):
         y = rnd.randrange(3, TD - 3)
         if ramp[x] > 0.5:
             for dx, dy in ((0, -1), (0, 1), (-1, 0), (1, 0)):
-                t.set(x + dx, y + dy, mix(C['curt_hi'], (255, 255, 255), 0.5))
+                t.set(x + dx, y + dy, mix(C['curt_hi'], C['hilite_tint'], 0.5))
     # Mesh header panel, as real cubicle curtains have, brick-offset rather than a flat grid.
     for row, dy in enumerate((2, 4)):
         for x in range((row * 2) % 4, TD, 4):
@@ -482,7 +488,7 @@ def _bed_occupied():
         t = i / 34
         w = round(9 - 3 * t)
         rect(cx - w, y, cx + w, y, mix(C['blanket'], C['blanket_hi'], 0.25))
-        px[cx, y] = mix(C['blanket_hi'], (255, 255, 255), 0.12) + (255,)
+        px[cx, y] = mix(C['blanket_hi'], C['hilite_tint'], 0.12) + (255,)
     # Feet, tenting the blanket at the very end.
     oval(cx - 3, top + 33, 2, 3, C['blanket_lo'])
     oval(cx + 3, top + 33, 2, 3, C['blanket_lo'])
@@ -552,11 +558,11 @@ def monitor_screen():
     # Contact shadow on the wall behind, cast down and right like everything else.
     for i, a in enumerate((0.26, 0.16, 0.08)):
         for x in range(9 + i, 25 + i + 1):
-            t.shade(x, 32 - 1 - i if False else 31, (40, 48, 52), a)
-        t.shade(25 + i, 12 + i, (40, 48, 52), a)
+            t.shade(x, 31, C['shadow_tint'], a)
+        t.shade(25 + i, 12 + i, C['shadow_tint'], a)
     for y in range(13, 32):
-        t.shade(25, y, (40, 48, 52), 0.22)
-        t.shade(26, y + 1 if y + 1 < 32 else y, (40, 48, 52), 0.12)
+        t.shade(25, y, C['shadow_tint'], 0.22)
+        t.shade(26, y + 1 if y + 1 < 32 else y, C['shadow_tint'], 0.12)
     return t
 
 
@@ -624,7 +630,7 @@ def stool():
     """A round-topped clinical stool — padded seat on a single metal column and base."""
     t = Tile()
     t.rect(9, 9, 22, 17, C['blanket_dk'])       # padded seat, same red-leaning vinyl family
-    t.hline(9, 22, 9, mix(C['blanket_dk'], (255, 255, 255), 0.28))
+    t.hline(9, 22, 9, mix(C['blanket_dk'], C['hilite_tint'], 0.28))
     t.hline(9, 22, 17, (74, 16, 26))
     t.vline(15, 18, 25, C['metal'])
     t.vline(16, 18, 25, C['metal_lo'])
@@ -748,7 +754,7 @@ def floor_ao():
     t = floor(9)
     for i, a in enumerate((0.34, 0.24, 0.16, 0.09, 0.04)):
         for x in range(TD):
-            t.shade(x, i, (40, 48, 52), a)
+            t.shade(x, i, C['shadow_tint'], a)
     return t
 
 
