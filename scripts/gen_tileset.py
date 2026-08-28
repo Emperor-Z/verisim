@@ -305,11 +305,13 @@ def curtain_hem():
 
 
 # ---------------------------------------------------------------- bed
-# Scale: one 32px tile is about a metre, which is what the characters are drawn to. A
-# trolley bed is 0.9m x 2m, so it is one tile wide and two long. The first version was
-# 2x3 tiles — a 2m-wide bed — which is most of why the room looked wrong: every prop was
-# drawn to fill its tile regardless of what the object actually is.
-BED_W, BED_H = TD, TD * 2
+# A single-tile-wide, two-tile-tall bed (metrically "correct" for a 0.9m trolley) drew as
+# a narrow coffin-shaped column next to characters this size, with Ray's shoulders forced
+# up against the rails to fill it. Real top-down games almost never draw a bed at strict
+# real-world proportions — they draw it roughly square, wide enough that a person sitting
+# in it has visible margin either side. 2x2 tiles matches that convention while still
+# reading unambiguously as a hospital trolley rather than a double bed.
+BED_W, BED_H = TD * 2, TD * 2
 
 
 def _bed_full():
@@ -327,7 +329,7 @@ def _bed_full():
     def vline(x, y0, y1, col):
         rect(x, y0, x, y1, col)
 
-    L, R = 6, BED_W - 7          # mattress edges
+    L, R = 12, BED_W - 13        # mattress edges
     HEAD, FOOT = 5, BED_H - 6
 
     # Castors
@@ -401,7 +403,7 @@ def _bed_occupied():
                 if ((x - cx) / max(rx, 0.5)) ** 2 + ((y - cy) / max(ry, 0.5)) ** 2 <= 1.0:
                     px[x, y] = col + (255,)
 
-    L, R = 6, BED_W - 7
+    L, R = 12, BED_W - 13
     HEAD = 5
     cx = (L + R) // 2
 
@@ -448,11 +450,11 @@ _BED = _bed_shadowed()
 _BED_OCCUPIED = _bed_shadowed(_bed_occupied)
 
 
-def bed_piece(row, occupied=False):
-    """row: 0=head, 1=foot."""
+def bed_piece(col, row, occupied=False):
+    """col: 0=left, 1=right.  row: 0=head, 1=foot."""
     t = Tile()
     source = _BED_OCCUPIED if occupied else _BED
-    t.img.paste(source.crop((0, row * TD, TD, row * TD + TD)), (0, 0))
+    t.img.paste(source.crop((col * TD, row * TD, col * TD + TD, row * TD + TD)), (0, 0))
     return t
 
 
@@ -713,10 +715,14 @@ TILES = [
     ('clock',         clock),
     ('ceiling_light', ceiling_light),
 
-    ('bed_head',      lambda: bed_piece(0)),
-    ('bed_foot',      lambda: bed_piece(1)),
-    ('bed_head_occ',  lambda: bed_piece(0, occupied=True)),
-    ('bed_foot_occ',  lambda: bed_piece(1, occupied=True)),
+    ('bed_hl',        lambda: bed_piece(0, 0)),
+    ('bed_hr',        lambda: bed_piece(1, 0)),
+    ('bed_fl',        lambda: bed_piece(0, 1)),
+    ('bed_fr',        lambda: bed_piece(1, 1)),
+    ('bed_hl_occ',    lambda: bed_piece(0, 0, occupied=True)),
+    ('bed_hr_occ',    lambda: bed_piece(1, 0, occupied=True)),
+    ('bed_fl_occ',    lambda: bed_piece(0, 1, occupied=True)),
+    ('bed_fr_occ',    lambda: bed_piece(1, 1, occupied=True)),
     ('cabinet',       standing(cabinet)),
     ('monitor',       monitor_screen),
     ('monitor_arm',   monitor_arm),

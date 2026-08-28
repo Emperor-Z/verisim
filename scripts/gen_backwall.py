@@ -213,9 +213,11 @@ def main():
     base_wall(cv)
     door(cv, 1 * TD)                                  # X0+1
     clock(cv, 1 * TD + TD // 2)
-    monitor(cv, (BED_X - X0) * TD + TD // 2)
+    # Bed is 2 tiles wide (BED_X, BED_X+1) — the monitor centres on the boundary between
+    # them, and oxygen/gel sit one tile clear on either side.
+    monitor(cv, (BED_X - X0) * TD + TD)
     oxygen(cv, (BED_X - 1 - X0) * TD + TD // 2)
-    gel(cv, (BED_X + 1 - X0) * TD + TD // 2)
+    gel(cv, (BED_X + 2 - X0) * TD + TD // 2)
     out = 'public/assets/ae-back-wall.png'
     cv.img.save(out)
     meta = dict(x0=X0, y0=0, tileTop=0, w=W, h=H, topH=TOP_H, midH=MID_H, kickH=KICK_H, tileDim=TD)

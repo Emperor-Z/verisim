@@ -72,11 +72,13 @@ for x in range(X0, X1 + 1):
 # Layer 1: walkable decor drawn under the characters — the bed, so Ray lies on it.
 decor = grid(EMPTY)
 BED_X, BED_Y = 8, 5
-# Occupied variant — Ray, not a standing character sprite, is placed here (see
-# BackWall.tsx's sibling suppression in PixiGame.tsx). The neighbouring bay's bed
-# (BAY2_X, below) stays the plain unoccupied tiles — nobody's demoed there.
-put(decor, BED_X, BED_Y, T['bed_head_occ'])
-put(decor, BED_X, BED_Y + 1, T['bed_foot_occ'])
+# 2x2 tiles. Occupied variant — Ray, not a standing character sprite, is placed here (see
+# the sibling suppression in PixiGame.tsx). The neighbouring bay's bed (BAY2_X, below)
+# stays the plain unoccupied tiles — nobody's demoed there.
+put(decor, BED_X, BED_Y, T['bed_hl_occ'])
+put(decor, BED_X + 1, BED_Y, T['bed_hr_occ'])
+put(decor, BED_X, BED_Y + 1, T['bed_fl_occ'])
+put(decor, BED_X + 1, BED_Y + 1, T['bed_fr_occ'])
 
 # ---------------------------------------------------------------- objects
 # Layer 0: structure. Anything here blocks movement.
@@ -106,8 +108,9 @@ put(walls, CURTAIN_X, Y1, T['curtain_hem'])
 props = grid(EMPTY)
 put(props, BED_X - 1, Y0, T['iv_top'])          # drip stand at the bed head
 put(props, BED_X - 1, Y0 + 1, T['iv_bot'])
-put(props, BED_X + 1, Y0, T['cabinet'])         # locker on the far side of the bed
-put(props, BED_X + 2, Y0 + 1, T['chair'])       # Kelly's chair, pulled up to the bed
+put(props, BED_X + 2, Y0, T['cabinet'])         # locker on the far side of the bed —
+                                                 # bed is now 2 tiles wide (BED_X, BED_X+1)
+put(props, BED_X + 3, Y0 + 1, T['chair'])       # Kelly's chair, pulled up to the bed
 put(props, X0 + 1, Y0 + 3, T['stool'])
 put(props, BED_X + 2, Y0 + 4, T['trolley'])
 put(props, X0 + 1, Y0, T['sink'])
@@ -126,13 +129,15 @@ for i, y in enumerate(range(Y0, Y1)):
     put(walls, DIVIDER_X, y, T['curtain_a'] if i % 2 == 0 else T['curtain_b'])
 put(walls, DIVIDER_X, Y1, T['curtain_hem'])
 
-put(decor, BAY2_X, BED_Y, T['bed_head'])
-put(decor, BAY2_X, BED_Y + 1, T['bed_foot'])
+put(decor, BAY2_X, BED_Y, T['bed_hl'])
+put(decor, BAY2_X + 1, BED_Y, T['bed_hr'])
+put(decor, BAY2_X, BED_Y + 1, T['bed_fl'])
+put(decor, BAY2_X + 1, BED_Y + 1, T['bed_fr'])
 put(walls, BAY2_X, WALL_TOP_Y, T['ceiling_light'])
 put(props, BAY2_X - 1, Y0, T['iv_top'])
 put(props, BAY2_X - 1, Y0 + 1, T['iv_bot'])
-put(props, BAY2_X + 1, Y0, T['cabinet'])
-put(props, BAY2_X + 1, Y0 + 2, T['chair'])
+put(props, BAY2_X + 2, Y0, T['cabinet'])
+put(props, BAY2_X + 2, Y0 + 2, T['chair'])
 put(props, BAY2_X - 2, Y0 + 4, T['stool'])
 
 # Must match TOP_H, MID_H, KICK_H in scripts/gen_backwall.py.
