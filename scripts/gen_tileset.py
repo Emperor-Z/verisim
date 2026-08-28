@@ -86,6 +86,10 @@ def _blend(dst, src, a):
     return tuple(round(d + (sv - d) * a) for d, sv in zip(dst, src))
 
 
+def mix(a, b, t):
+    return tuple(round(x + (y - x) * t) for x, y in zip(a[:3], b[:3]))
+
+
 class Tile:
     def __init__(self, bg=None):
         self.img = Image.new('RGBA', (TD, TD), (0, 0, 0, 0))
@@ -492,26 +496,32 @@ def chair():
 
 
 def stool():
+    """A round-topped clinical stool — padded seat on a single metal column and base."""
     t = Tile()
-    t.rect(9, 10, 22, 19, C['case'])
-    t.hline(9, 22, 10, C['case_lo'])
-    t.vline(15, 20, 26, C['metal_lo'])
-    t.vline(16, 20, 26, C['metal_lo'])
-    t.hline(10, 21, 27, C['metal_lo'])
+    t.rect(9, 9, 22, 17, C['blanket_dk'])       # padded seat, same red-leaning vinyl family
+    t.hline(9, 22, 9, mix(C['blanket_dk'], (255, 255, 255), 0.28))
+    t.hline(9, 22, 17, (74, 16, 26))
+    t.vline(15, 18, 25, C['metal'])
+    t.vline(16, 18, 25, C['metal_lo'])
+    t.hline(9, 22, 26, C['metal_lo'])           # star base
+    t.hline(11, 20, 27, C['metal_lo'])
     return t
 
 
 def trolley():
-    """Dressings trolley: a metal top over two drawers, on castors."""
+    """Dressings trolley: a metal top over two grey drawers, marked with a small red cross."""
     t = Tile()
     t.rect(7, 6, 25, 10, C['metal'])          # top surface
     t.hline(7, 25, 6, C['metal_hi'])
     t.hline(7, 25, 10, C['metal_dk'])
     for y in (11, 18):                        # drawers
-        t.rect(8, y, 24, y + 6, C['red'])
-        t.hline(8, 24, y, (196, 92, 88))
-        t.hline(8, 24, y + 6, (118, 40, 38))
-        t.hline(13, 19, y + 3, (232, 150, 146))
+        t.rect(8, y, 24, y + 6, C['plastic'])
+        t.hline(8, 24, y, C['metal_hi'])
+        t.hline(8, 24, y + 6, C['metal_lo'])
+        t.hline(13, 19, y + 3, C['line_soft'])
+    t.rect(14, 12, 18, 16, C['red'])          # cross, the one accent
+    t.hline(15, 17, 13, C['red'])
+    t.vline(16, 12, 16, (232, 150, 146))
     t.rect(9, 25, 11, 28, C['metal_dk'])      # castors
     t.rect(21, 25, 23, 28, C['metal_dk'])
     return t

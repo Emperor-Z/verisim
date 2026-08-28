@@ -24,7 +24,7 @@ from PIL import Image
 
 TD = 32
 # Must match X0, X1, WALL_TOP_Y, BED_X in scripts/gen_map.py.
-X0, X1 = 5, 12
+X0, X1 = 5, 19
 BED_X = 8
 TILES_W = X1 - X0 + 1
 W = TILES_W * TD

@@ -22,7 +22,7 @@ import { DEMO_MODE } from '../demo/useBayScript.ts';
 // The bay as drawn by scripts/gen_map.py: back wall at y3 down to the open front, left
 // wall to cubicle curtain. Kept here rather than imported from the map data because it is
 // a framing choice, not a property of the map.
-const BAY_3_FRAME = { minX: 5, maxX: 12, minY: 3, maxY: 11 };
+const BAY_3_FRAME = { minX: 5, maxX: 19, minY: 3, maxY: 11 };
 
 export const PixiGame = (props: {
   worldId: Id<'worlds'>;

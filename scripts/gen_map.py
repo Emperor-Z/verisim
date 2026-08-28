@@ -27,7 +27,10 @@ T = json.load(open('data/tileIds.json'))
 # Room bounds. One tile is about a metre, matching the scale the characters and props are
 # drawn to, so a real resus bay is roughly five metres across rather than the eight the
 # first layout gave it. The camera sits on the middle of this.
-X0, X1 = 5, 12          # left wall .. cubicle curtain
+X0, X1 = 5, 19          # left wall .. cubicle curtain — 15 tiles, chosen so the room's
+                         # aspect ratio (~1.67:1) roughly matches the game viewport's, so the
+                         # camera fit (PixiGame.tsx) doesn't have to letterbox in undecorated
+                         # floor on both sides just to fit the room's height
 WALL_TOP_Y = 3          # upper wall row
 WALL_Y = 4              # lower wall row, meets the floor
 Y0, Y1 = 5, 10          # interior floor rows
@@ -107,6 +110,27 @@ put(props, BED_X + 2, Y0 + 4, T['trolley'])
 put(props, X0 + 1, Y0, T['sink'])
 put(props, X0 + 1, Y0 + 1, T['sharps'])
 put(props, X0 + 1, Y1, T['waste'])
+
+# The extra width past the curtain used to be undecorated floor bleeding past the frame's
+# edge with nothing bounding it — a second, smaller bay next door, so anything the wider
+# camera reveals still reads as part of the ward rather than empty space. A curtain divides
+# it from Bay 3 itself, not just the ward's outer edge, or two beds sitting in open floor
+# with no partition between them reads as clutter rather than a neighbouring bay.
+BAY2_X = BED_X + 8
+DIVIDER_X = BED_X + 5
+put(walls, DIVIDER_X, WALL_Y, T['curtain_rail'])
+for i, y in enumerate(range(Y0, Y1)):
+    put(walls, DIVIDER_X, y, T['curtain_a'] if i % 2 == 0 else T['curtain_b'])
+put(walls, DIVIDER_X, Y1, T['curtain_hem'])
+
+put(decor, BAY2_X, BED_Y, T['bed_head'])
+put(decor, BAY2_X, BED_Y + 1, T['bed_foot'])
+put(walls, BAY2_X, WALL_TOP_Y, T['ceiling_light'])
+put(props, BAY2_X - 1, Y0, T['iv_top'])
+put(props, BAY2_X - 1, Y0 + 1, T['iv_bot'])
+put(props, BAY2_X + 1, Y0, T['cabinet'])
+put(props, BAY2_X + 1, Y0 + 2, T['chair'])
+put(props, BAY2_X - 2, Y0 + 4, T['stool'])
 
 # Must match TOP_H, MID_H, KICK_H in scripts/gen_backwall.py.
 BACK_WALL = dict(
