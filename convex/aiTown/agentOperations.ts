@@ -170,10 +170,10 @@ export const agentDoSomething = internalAction({
 });
 
 // VeriSim Scenario 01 is a single consultation room, not an open town — Ray, Kelly and Sam should
-// idle-wander inside Bay 3 (data/aeBay.js floor tiles span x:5-13, y:4-12) rather than across the
+// idle-wander inside Bay 3 (data/aeBay.js floor tiles span x:6-11, y:5-10) rather than across the
 // full 64x48 map, which is what the inherited AI Town behaviour did before this fix (see
 // ARCHITECTURE_AND_VALIDATION.md §4.2).
-const BAY_3_WANDER_BOUNDS = { minX: 6, maxX: 12, minY: 5, maxY: 11 };
+const BAY_3_WANDER_BOUNDS = { minX: 6, maxX: 11, minY: 5, maxY: 10 };
 
 function wanderDestination(worldMap: WorldMap) {
   const { minX, maxX, minY, maxY } = BAY_3_WANDER_BOUNDS;

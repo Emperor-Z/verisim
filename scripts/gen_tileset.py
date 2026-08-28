@@ -296,10 +296,11 @@ def curtain_hem():
 
 
 # ---------------------------------------------------------------- bed
-# A trolley bed spans 2 tiles across and 3 down. Drawing it whole and slicing it is far
-# easier to get right than drawing six tiles that each have to guess where the others'
-# edges fall — the first attempt did the latter and the seams never lined up.
-BED_W, BED_H = TD * 2, TD * 3
+# Scale: one 32px tile is about a metre, which is what the characters are drawn to. A
+# trolley bed is 0.9m x 2m, so it is one tile wide and two long. The first version was
+# 2x3 tiles — a 2m-wide bed — which is most of why the room looked wrong: every prop was
+# drawn to fill its tile regardless of what the object actually is.
+BED_W, BED_H = TD, TD * 2
 
 
 def _bed_full():
@@ -317,64 +318,51 @@ def _bed_full():
     def vline(x, y0, y1, col):
         rect(x, y0, x, y1, col)
 
-    L, R = 6, BED_W - 7
-    HEAD, FOOT = 6, BED_H - 7
+    L, R = 6, BED_W - 7          # mattress edges
+    HEAD, FOOT = 5, BED_H - 6
 
-    # Castors, drawn first so the frame sits over them.
-    for cx in (L + 1, R - 3):
-        for cy in (HEAD + 3, FOOT - 5):
-            rect(cx, cy, cx + 2, cy + 3, C['metal_dk'])
-            hline(cx, cx + 2, cy, C['metal_lo'])
+    # Castors
+    for cx in (L, R - 1):
+        for cy in (HEAD + 3, FOOT - 4):
+            rect(cx, cy, cx + 1, cy + 2, C['metal_dk'])
 
-    # Frame and mattress platform
+    # Frame and mattress
     rect(L, HEAD, R, FOOT, C['metal_lo'])
-    rect(L + 1, HEAD + 1, R - 1, FOOT - 1, C['metal'])
-    rect(L + 2, HEAD + 2, R - 2, FOOT - 2, C['linen'])
+    rect(L + 1, HEAD + 1, R - 1, FOOT - 1, C['linen'])
 
-    # Head and foot boards, with a lit top edge and a shaded underside
-    for y0, y1 in ((HEAD - 5, HEAD + 1), (FOOT - 1, FOOT + 5)):
+    # Head and foot boards
+    for y0, y1 in ((HEAD - 4, HEAD), (FOOT, FOOT + 4)):
         rect(L - 2, y0, R + 2, y1, C['metal'])
         hline(L - 2, R + 2, y0, C['metal_hi'])
-        hline(L - 2, R + 2, y0 + 1, C['metal_hi'])
         hline(L - 2, R + 2, y1, C['metal_dk'])
-        vline(L - 2, y0, y1, C['metal_hi'])
-        vline(R + 2, y0, y1, C['metal_lo'])
 
-    # Pillow, with a crease and a shaded underside so it has loft
-    py0, py1 = HEAD + 5, HEAD + 23
-    rect(L + 4, py0, R - 4, py1, C['pillow'])
-    hline(L + 4, R - 4, py0, C['linen'])
-    hline(L + 4, R - 4, py1, C['linen_dk'])
-    hline(L + 5, R - 5, py1 - 1, C['linen_lo'])
-    vline(R - 4, py0, py1, C['linen_lo'])
-    for x in range(L + 9, R - 8):
-        px[x, py0 + 9] = C['linen_lo'] + (255,)
+    # Pillow with a crease
+    py0, py1 = HEAD + 2, HEAD + 12
+    rect(L + 2, py0, R - 2, py1, C['pillow'])
+    hline(L + 2, R - 2, py1, C['linen_dk'])
+    hline(L + 3, R - 3, py1 - 1, C['linen_lo'])
+    vline(R - 2, py0, py1, C['linen_lo'])
+    hline(L + 5, R - 5, py0 + 5, C['linen_lo'])
 
-    # Blanket over the lower two thirds: turned-back sheet, then folds that get closer
-    # together toward the foot, which is what stops it reading as corrugated iron.
-    top = HEAD + 32
-    rect(L + 2, top, R - 2, FOOT - 2, C['blanket'])
-    rect(L + 2, top, R - 2, top + 5, C['linen'])
-    hline(L + 2, R - 2, top, C['linen_lo'])
-    hline(L + 2, R - 2, top + 5, C['linen_dk'])
-    hline(L + 2, R - 2, top + 6, C['blanket_hi'])
-    for dy, shade in ((13, 'blanket_lo'), (24, 'blanket_lo'), (33, 'blanket_dk'),
-                      (40, 'blanket_lo')):
+    # Blanket over the lower half, turned back at the top
+    top = HEAD + 17
+    rect(L + 1, top, R - 1, FOOT - 1, C['blanket'])
+    rect(L + 1, top, R - 1, top + 2, C['linen'])
+    hline(L + 1, R - 1, top + 3, C['blanket_hi'])
+    for dy, shade in ((8, 'blanket_lo'), (15, 'blanket_dk'), (21, 'blanket_lo')):
         y = top + dy
-        if y < FOOT - 2:
-            hline(L + 3, R - 3, y, C[shade])
-            hline(L + 4, R - 4, y + 1, C['blanket_hi'])
-    vline(R - 2, top, FOOT - 2, C['blanket_dk'])
-    vline(L + 2, top, FOOT - 2, C['blanket_hi'])
+        if y < FOOT - 1:
+            hline(L + 2, R - 2, y, C[shade])
+            hline(L + 3, R - 3, y + 1, C['blanket_hi'])
+    vline(R - 1, top, FOOT - 1, C['blanket_dk'])
+    vline(L + 1, top, FOOT - 1, C['blanket_hi'])
 
-    # Cot side rails: two horizontal bars in a frame, the clearest signal that this is a
-    # hospital trolley and not a bed.
-    for x0, lit in ((L - 4, True), (R + 1, False)):
-        rect(x0, HEAD + 10, x0 + 3, FOOT - 6, C['metal_lo'])
-        rect(x0 + (0 if lit else 1), HEAD + 10, x0 + (2 if lit else 3), FOOT - 6, C['metal'])
-        for y in (HEAD + 10, HEAD + 22, HEAD + 34, FOOT - 6):
-            if y < FOOT - 5:
-                rect(x0, y, x0 + 3, y + 1, C['metal_hi'])
+    # Cot side rails
+    for x0, lit in ((L - 3, True), (R + 1, False)):
+        rect(x0, HEAD + 6, x0 + 2, FOOT - 4, C['metal_lo'])
+        rect(x0 + (0 if lit else 1), HEAD + 6, x0 + (1 if lit else 2), FOOT - 4, C['metal'])
+        for y in (HEAD + 6, HEAD + 16, FOOT - 4):
+            rect(x0, y, x0 + 2, y, C['metal_hi'])
     return im
 
 
@@ -392,10 +380,10 @@ def _bed_shadowed():
 _BED = _bed_shadowed()
 
 
-def bed_piece(col, row):
-    """col: 0=left 1=right.  row: 0=head 1=middle 2=foot."""
+def bed_piece(row):
+    """row: 0=head, 1=foot."""
     t = Tile()
-    t.img.paste(_BED.crop((col * TD, row * TD, col * TD + TD, row * TD + TD)), (0, 0))
+    t.img.paste(_BED.crop((0, row * TD, TD, row * TD + TD)), (0, 0))
     return t
 
 
@@ -406,51 +394,53 @@ def monitor_screen():
 
     Given a whole tile to itself the screen can carry a real rhythm strip and a second
     numeric row, instead of the few pixels it had when the whole unit was one tile.
+
+    Drawn onto a wall tile, not a transparent one — it sits in the wall run, and a bare
+    tile leaves a hole through to the floor behind.
     """
-    t = Tile()
-    t.rect(2, 6, 29, 31, C['case'])
-    t.hline(2, 29, 6, (86, 94, 104))          # lit top bezel
-    t.hline(2, 29, 7, (72, 80, 90))
-    t.vline(2, 6, 31, (86, 94, 104))
-    t.vline(29, 6, 31, C['case_lo'])
-    t.rect(4, 9, 27, 28, C['screen'])
-    t.frame(4, 9, 27, 28, (10, 20, 16))
+    t = wall_upper()
+    t.rect(8, 12, 24, 31, C['case'])
+    t.hline(8, 24, 12, (86, 94, 104))         # lit top bezel
+    t.vline(8, 12, 31, (86, 94, 104))
+    t.vline(24, 12, 31, C['case_lo'])
+    t.rect(10, 14, 22, 29, C['screen'])
+    t.frame(10, 14, 22, 29, (10, 20, 16))
 
     # ECG rhythm: two beats across the tile, each a small P wave then a QRS spike.
-    base = 17
-    for x in range(5, 27):
+    base = 19
+    for x in range(11, 22):
         t.set(x, base, (36, 96, 62))
-    for origin in (7, 18):
-        t.set(origin, base - 2, C['trace'])
-        t.set(origin + 1, base - 2, C['trace'])
-        for dx, dy in ((4, -1), (5, -7), (6, 4), (7, 0)):
+    for origin in (11, 17):
+        for dx, dy in ((1, -1), (2, -5), (3, 3), (4, 0)):
             t.set(origin + dx, base + dy, C['trace'])
             t.set(origin + dx, base + dy + 1, C['trace'])
-    for x in range(5, 27):
-        if (x % 3) == 0:
-            t.set(x, base, C['trace'])
 
     # Numeric row underneath: heart rate in green, sats in amber.
-    for x in range(6, 12):
-        t.set(x, 24, C['trace'])
-        t.set(x, 25, C['trace'] if x % 2 else (16, 60, 40))
-    for x in range(18, 24):
-        t.set(x, 24, C['amber'])
-        t.set(x, 25, C['amber'] if x % 2 else (110, 84, 34))
+    for x in range(11, 15):
+        t.set(x, 25, C['trace'])
+    for x in range(18, 22):
+        t.set(x, 25, C['amber'])
+    # Contact shadow on the wall behind, cast down and right like everything else.
+    for i, a in enumerate((0.26, 0.16, 0.08)):
+        for x in range(9 + i, 25 + i + 1):
+            t.shade(x, 32 - 1 - i if False else 31, (40, 48, 52), a)
+        t.shade(25 + i, 12 + i, (40, 48, 52), a)
+    for y in range(13, 32):
+        t.shade(25, y, (40, 48, 52), 0.22)
+        t.shade(26, y + 1 if y + 1 < 32 else y, (40, 48, 52), 0.12)
     return t
 
 
 def monitor_arm():
     """Cardiac monitor, lower tile: wall arm and the leads running down to the patient."""
-    t = Tile()
-    t.rect(12, 0, 19, 5, C['case_lo'])         # neck
-    t.rect(9, 5, 22, 9, C['metal_lo'])         # bracket
-    t.hline(9, 22, 5, C['metal'])
+    t = wall_lower()
+    t.rect(14, 0, 17, 3, C['case_lo'])         # neck
+    t.rect(12, 3, 19, 6, C['metal_lo'])        # bracket
+    t.hline(12, 19, 3, C['metal'])
     # Leads trailing off toward the bed.
-    for i, x in enumerate((13, 16, 18)):
-        t.vline(x, 10, 16 + i * 3, C['case'])
-        t.set(x + 1, 16 + i * 3, C['case'])
-        t.set(x + 2, 17 + i * 3, C['case'])
+    for i, x in enumerate((14, 16, 18)):
+        t.vline(x, 7, 12 + i * 3, C['case'])
+        t.set(x + 1, 12 + i * 3, C['case'])
     return t
 
 
@@ -476,18 +466,17 @@ def iv_stand(top=True):
 def cabinet():
     """Bedside locker: a lit top surface over two drawers, so it reads as having height."""
     t = Tile()
-    t.rect(3, 4, 28, 9, (214, 178, 138))      # top surface, catching the light
-    t.hline(3, 28, 4, (232, 198, 160))
-    t.hline(3, 28, 9, C['wood_lo'])
-    t.rect(3, 10, 28, 29, C['wood'])          # front
-    t.vline(3, 10, 29, (206, 168, 128))
-    t.vline(28, 10, 29, C['wood_lo'])
-    t.hline(3, 28, 29, (120, 88, 62))
-    for y in (11, 20):                        # drawers
-        t.hline(5, 26, y, (206, 168, 128))
-        t.hline(5, 26, y + 7, C['wood_lo'])
-        t.hline(12, 19, y + 4, (140, 104, 74))
-        t.hline(12, 19, y + 3, (232, 198, 160))
+    t.rect(9, 10, 23, 14, (214, 178, 138))    # top surface, catching the light
+    t.hline(9, 23, 10, (232, 198, 160))
+    t.hline(9, 23, 14, C['wood_lo'])
+    t.rect(9, 15, 23, 27, C['wood'])          # front
+    t.vline(9, 15, 27, (206, 168, 128))
+    t.vline(23, 15, 27, C['wood_lo'])
+    t.hline(9, 23, 27, (120, 88, 62))
+    for y in (16, 22):                        # drawers
+        t.hline(10, 22, y, (206, 168, 128))
+        t.hline(10, 22, y + 4, C['wood_lo'])
+        t.hline(14, 18, y + 2, (140, 104, 74))
     return t
 
 
@@ -512,21 +501,19 @@ def stool():
     return t
 
 
-def trolley(top=True):
-    """Crash / dressings trolley."""
+def trolley():
+    """Dressings trolley: a metal top over two drawers, on castors."""
     t = Tile()
-    if top:
-        t.rect(3, 8, 28, 12, C['metal'])
-        t.hline(3, 28, 8, (200, 208, 214))
-        t.rect(5, 13, 26, 20, C['red'])
-        t.hline(5, 26, 13, (196, 92, 88))
-        t.rect(5, 21, 26, 28, C['red'])
-        t.hline(5, 26, 21, (196, 92, 88))
-    else:
-        t.rect(5, 0, 26, 6, C['red'])
-        t.rect(3, 7, 28, 10, C['metal_lo'])
-        t.rect(6, 11, 8, 15, C['case'])
-        t.rect(23, 11, 25, 15, C['case'])
+    t.rect(7, 6, 25, 10, C['metal'])          # top surface
+    t.hline(7, 25, 6, C['metal_hi'])
+    t.hline(7, 25, 10, C['metal_dk'])
+    for y in (11, 18):                        # drawers
+        t.rect(8, y, 24, y + 6, C['red'])
+        t.hline(8, 24, y, (196, 92, 88))
+        t.hline(8, 24, y + 6, (118, 40, 38))
+        t.hline(13, 19, y + 3, (232, 150, 146))
+    t.rect(9, 25, 11, 28, C['metal_dk'])      # castors
+    t.rect(21, 25, 23, 28, C['metal_dk'])
     return t
 
 
@@ -542,10 +529,10 @@ def sink():
 
 def sharps_bin():
     t = Tile()
-    t.rect(9, 12, 22, 28, (232, 186, 58))
-    t.frame(9, 12, 22, 28, (188, 146, 40))
-    t.rect(9, 8, 22, 12, (208, 60, 52))
-    t.hline(11, 20, 17, (188, 146, 40))
+    t.rect(11, 15, 21, 27, (232, 186, 58))
+    t.frame(11, 15, 21, 27, (188, 146, 40))
+    t.rect(11, 12, 21, 15, (208, 60, 52))
+    t.hline(13, 19, 19, (188, 146, 40))
     return t
 
 
@@ -585,24 +572,22 @@ def clock():
     return t
 
 
-def door(left=True):
-    t = Tile(C['wall'])
-    if left:
-        t.rect(6, 2, TD - 1, TD - 1, C['wood'])
-        t.frame(6, 2, TD - 1, TD - 1, C['wood_lo'])
-        t.rect(9, 5, TD - 4, 16, (206, 224, 232))   # vision panel
-        t.frame(9, 5, TD - 4, 16, C['wood_lo'])
-    else:
-        t.rect(0, 2, TD - 7, TD - 1, C['wood'])
-        t.frame(0, 2, TD - 7, TD - 1, C['wood_lo'])
-        t.rect(3, 5, TD - 10, 16, (206, 224, 232))
-        t.frame(3, 5, TD - 10, 16, C['wood_lo'])
-        t.rect(TD - 12, 20, TD - 10, 23, C['metal_lo'])  # handle
+def door():
+    """A single-leaf doorway, one tile across."""
+    t = wall_lower()
+    t.rect(3, 1, 28, TD - 1, C['wood_lo'])       # frame
+    t.rect(4, 2, 27, TD - 1, C['wood'])
+    t.vline(4, 2, TD - 1, (206, 168, 128))
+    t.vline(27, 2, TD - 1, C['wood_lo'])
+    t.rect(7, 5, 24, 17, (206, 224, 232))        # vision panel
+    t.frame(7, 5, 24, 17, C['wood_lo'])
+    t.hline(8, 23, 6, (232, 244, 248))
+    t.rect(23, 21, 25, 24, C['metal'])           # handle
     return t
 
 
 def ceiling_light():
-    t = Tile()
+    t = wall_upper()
     t.rect(4, 12, 27, 19, (246, 248, 244))
     t.frame(4, 12, 27, 19, C['line_soft'])
     return t
@@ -649,27 +634,21 @@ TILES = [
     ('curtain_a',     standing(lambda: curtain(0), dx=3, dy=0, alpha=0.26, light=False)),
     ('curtain_b',     standing(lambda: curtain(3), dx=3, dy=0, alpha=0.26, light=False)),
     ('curtain_hem',   standing(curtain_hem, dx=3, dy=1, alpha=0.26, light=False)),
-    ('door_l',        lambda: door(True)),
-    ('door_r',        lambda: door(False)),
+    ('door',          door),
     ('clock',         clock),
     ('ceiling_light', ceiling_light),
 
-    ('bed_hl',        lambda: bed_piece(0, 0)),
-    ('bed_hr',        lambda: bed_piece(1, 0)),
-    ('bed_ml',        lambda: bed_piece(0, 1)),
-    ('bed_mr',        lambda: bed_piece(1, 1)),
-    ('bed_fl',        lambda: bed_piece(0, 2)),
-    ('bed_fr',        lambda: bed_piece(1, 2)),
+    ('bed_head',      lambda: bed_piece(0)),
+    ('bed_foot',      lambda: bed_piece(1)),
     ('cabinet',       standing(cabinet)),
-    ('monitor',       standing(monitor_screen, dy=2, alpha=0.22)),
-    ('monitor_arm',   standing(monitor_arm, dy=2, alpha=0.18)),
+    ('monitor',       monitor_screen),
+    ('monitor_arm',   monitor_arm),
 
     ('iv_top',        standing(lambda: iv_stand(True), dy=0, alpha=0.18)),
     ('iv_bot',        standing(lambda: iv_stand(False), alpha=0.26)),
     ('chair',         standing(chair)),
     ('stool',         standing(stool)),
-    ('trolley_top',   standing(lambda: trolley(True), dy=0, alpha=0.22)),
-    ('trolley_bot',   standing(lambda: trolley(False))),
+    ('trolley',       standing(trolley)),
     ('sink',          standing(sink)),
     ('sharps',        standing(sharps_bin)),
 

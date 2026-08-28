@@ -28,10 +28,15 @@ const SPEAKER_ROLE: Record<Speaker, string> = {
  */
 export function BayTranscript({
   lines,
+  cue,
   onSend,
+  finished,
 }: {
   lines: ScriptLine[];
+  /** The clinician's next line, offered in the composer. Null while others are talking. */
+  cue: string | null;
   onSend: (text: string) => void;
+  finished: boolean;
 }) {
   const endRef = useRef<HTMLDivElement>(null);
   const count = lines.length;
@@ -66,7 +71,7 @@ export function BayTranscript({
         ))}
         <div ref={endRef} />
       </div>
-      <Composer onSend={onSend} />
+      <Composer cue={cue} onSend={onSend} finished={finished} />
     </div>
   );
 }
@@ -74,18 +79,62 @@ export function BayTranscript({
 /**
  * Where the clinician speaks.
  *
- * The live build only shows an input once you are inside a conversation with someone
- * (Messages.tsx renders MessageInput on `inConversationWithMe`), which means that in a
- * room with three people there is usually nowhere to type. Here the bay is the
- * conversation, so the composer is always available.
+ * The live build only shows an input once you are already in a conversation with someone
+ * (Messages.tsx gates MessageInput on `inConversationWithMe`), which in a room of three
+ * people usually means nowhere at all. Here the bay is the conversation, so the composer
+ * is always there.
+ *
+ * When the script is waiting on the clinician it types their line into the box rather
+ * than saying it for them: the words appear in the input, and only reach the room when
+ * the player sends them. The cue is editable — clear it and say something else.
  */
-function Composer({ onSend }: { onSend: (text: string) => void }) {
+function Composer({
+  cue,
+  onSend,
+  finished,
+}: {
+  cue: string | null;
+  onSend: (text: string) => void;
+  finished: boolean;
+}) {
   const [draft, setDraft] = useState('');
+  // Once the player edits a cue we stop driving the field, or the typewriter fights them.
+  const [claimed, setClaimed] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Type the cue in a character at a time, so it reads as the clinician composing it.
+  useEffect(() => {
+    if (cue === null) {
+      setClaimed(false);
+      return;
+    }
+    setDraft('');
+    setClaimed(false);
+    let i = 0;
+    const id = setInterval(() => {
+      i += 1;
+      setDraft((prev) => {
+        // Bail out if the player has started typing over it.
+        if (prev !== cue.slice(0, i - 1)) {
+          clearInterval(id);
+          return prev;
+        }
+        return cue.slice(0, i);
+      });
+      if (i >= cue.length) clearInterval(id);
+    }, 28);
+    return () => clearInterval(id);
+  }, [cue]);
+
+  useEffect(() => {
+    if (cue !== null) inputRef.current?.focus();
+  }, [cue]);
 
   const submit = () => {
     if (!draft.trim()) return;
     onSend(draft);
     setDraft('');
+    setClaimed(false);
   };
 
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -97,25 +146,41 @@ function Composer({ onSend }: { onSend: (text: string) => void }) {
     }
   };
 
+  const waiting = cue !== null;
   return (
-    <div className="shrink-0 mt-3 flex gap-2 items-stretch">
-      <input
-        type="text"
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onKeyDown={onKeyDown}
-        placeholder="Say something…"
-        aria-label="Say something to the bay"
-        className="flex-grow min-w-0 bg-brown-200 text-black placeholder:text-brown-600 px-3 py-2 text-base sm:text-sm border-2 border-brown-900 outline-none focus:outline-none focus-visible:outline-none focus:border-clay-700"
-      />
-      <button
-        type="button"
-        onClick={submit}
-        disabled={!draft.trim()}
-        className="button text-white shadow-solid text-lg cursor-pointer pointer-events-auto disabled:opacity-40 disabled:cursor-not-allowed"
-      >
-        <div className="h-full bg-clay-700 px-3 flex items-center">Send</div>
-      </button>
+    <div className="shrink-0 mt-3">
+      <div className="flex gap-2 items-stretch">
+        <input
+          ref={inputRef}
+          type="text"
+          value={draft}
+          onChange={(e) => {
+            setClaimed(true);
+            setDraft(e.target.value);
+          }}
+          onKeyDown={onKeyDown}
+          placeholder={finished ? 'Consultation over.' : 'Say something…'}
+          aria-label="Say something to the bay"
+          className={clsx(
+            'flex-grow min-w-0 bg-brown-200 text-black placeholder:text-brown-600 px-3 py-2',
+            'text-base sm:text-sm border-2 outline-none focus:outline-none',
+            'focus-visible:outline-none focus:border-clay-700',
+            waiting ? 'border-clay-700' : 'border-brown-900',
+          )}
+        />
+        <button
+          type="button"
+          onClick={submit}
+          disabled={!draft.trim()}
+          className="button text-white shadow-solid text-lg cursor-pointer pointer-events-auto disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <div className="h-full bg-clay-700 px-3 flex items-center">Send</div>
+        </button>
+      </div>
+      <p className="mt-1 h-4 text-xs text-brown-300">
+        {waiting && !claimed && 'Your turn — press Enter to say it, or type your own.'}
+        {waiting && claimed && 'Press Enter to say it.'}
+      </p>
     </div>
   );
 }

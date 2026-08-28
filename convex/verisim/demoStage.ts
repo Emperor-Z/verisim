@@ -8,16 +8,16 @@ import { internalMutation } from '../_generated/server';
  * writes positions straight to the world doc, the same bypass testing.ts:forceJoinHuman
  * already uses, so staging a demo take does not depend on the engine running.
  *
- * Coordinates follow the layout in scripts/gen_map.py: the bed occupies x8-9, y5-7 and is
+ * Coordinates follow the layout in scripts/gen_map.py: the bed occupies x8, y5-6 and is
  * in a background layer, so standing on it is legal and draws Ray on top of it.
  */
 const MARKS: Record<string, { x: number; y: number; dx: number; dy: number }> = {
-  Ray: { x: 8, y: 6, dx: 0, dy: 1 },        // propped up in the bed, facing out
-  Kelly: { x: 11, y: 8, dx: -1, dy: 0 },    // at the bedside chair, turned to her father
-  Sam: { x: 10, y: 9, dx: 0, dy: -1 },      // at the foot of the bed
+  Ray: { x: 8, y: 5, dx: 0, dy: 1 },        // propped up in the bed, facing out
+  Kelly: { x: 10, y: 7, dx: 0, dy: -1 },    // just off the bedside chair, facing her father
+  Sam: { x: 9, y: 9, dx: 0, dy: -1 },       // at the foot of the bed
 };
 
-const CLINICIAN_MARK = { x: 8, y: 9, dx: 0, dy: -1 };
+const CLINICIAN_MARK = { x: 7, y: 8, dx: 0, dy: -1 };
 
 export const placeDemoCast = internalMutation({
   args: {},

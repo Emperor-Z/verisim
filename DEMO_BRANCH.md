@@ -16,6 +16,11 @@ the map, the sprites, the transcript panel and the speech bubbles are the same c
 
 - `src/demo/bayScript.ts` — the scripted consultation, written from `docs/persona_cards.md`
 - `src/demo/useBayScript.ts` — playback, gated on `VITE_DEMO_MODE`
+
+The script only ever advances the other three. When it reaches one of the clinician's
+lines it stops, types that line into the chat box as a cue, and waits — nothing the player
+says reaches the room without being sent from the composer. The cue is editable, so you
+can clear it and say something else; the script picks up either way.
 - `src/components/BayTranscript.tsx` — the always-visible bay transcript
 - `convex/verisim/demoStage.ts` — stands the cast in their marks without needing the engine
 
