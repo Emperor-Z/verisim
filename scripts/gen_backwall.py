@@ -279,6 +279,39 @@ def supply_shelf(cv, cx):
             x += w + 1
 
 
+def whiteboard(cv, cx):
+    """Patient status board — NEWS score / obs tracker, the kind every real bay has."""
+    x0, y0 = cx - 17, 6
+    cv.rect(x0, y0, x0 + 34, y0 + 22, C['plastic'] if 'plastic' in C else (222, 226, 228))
+    cv.frame(x0, y0, x0 + 34, y0 + 22, C['metal_lo'] if 'metal_lo' in C else C['skirt'])
+    cv.hline(x0 + 1, x0 + 33, y0 + 6, (200, 60, 56))
+    for row in range(3):
+        y = y0 + 10 + row * 4
+        cv.hline(x0 + 3, x0 + 3 + [16, 22, 12][row], y, (150, 158, 158))
+    cv.rect(x0 + 26, y0 - 3, x0 + 29, y0, (60, 66, 70))   # pen on a cord
+    cv.vline(x0 + 27, y0, y0 + 4, (60, 66, 70))
+
+
+def screen_divider(cv, cx):
+    """
+    Mobile privacy screen — a folding 3-panel curtain screen on castors, the freestanding
+    piece every A&E bay has spare for exactly this kind of consultation. Floor-standing,
+    so it's drawn tall (kick + mid band) rather than as a small wall fitting.
+    """
+    x0 = cx - 21
+    y0 = TOP_H + MID_H - 46
+    panel_w = 14
+    for i in range(3):
+        px0 = x0 + i * (panel_w - 2)
+        shade = [C['curt'], C['curt_hi'], C['curt']][i] if 'curt' in C else C['dado']
+        cv.rect(px0, y0, px0 + panel_w - 1, y0 + 40, shade)
+        cv.vline(px0, y0, y0 + 40, mix(shade, C['hilite_tint'], 0.2))
+        cv.vline(px0 + panel_w - 1, y0, y0 + 40, mix(shade, C['shadow_tint'], 0.25))
+        cv.hline(px0, px0 + panel_w - 1, y0, mix(shade, C['shadow_tint'], 0.3))
+        cv.rect(px0 + 4, y0 + 41, px0 + 5, y0 + 44, C['metal_lo'])   # castor leg
+        cv.rect(px0 + panel_w - 6, y0 + 41, px0 + panel_w - 5, y0 + 44, C['metal_lo'])
+
+
 def main():
     cv = Canvas(W, H)
     base_wall(cv)
@@ -292,6 +325,10 @@ def main():
     # Free stretch of wall between the bed's fittings and the neighbouring bay.
     bay_sign(cv, (BED_X + 4 - X0) * TD + TD // 2)
     supply_shelf(cv, (BED_X + 6 - X0) * TD + TD // 2)
+    # Free stretches of wall: between gel and the sign, and between the neighbouring
+    # bay's bed and the room's outer curtain.
+    screen_divider(cv, (BED_X + 3 - X0) * TD + TD // 2)
+    whiteboard(cv, (BED_X + 9 - X0) * TD + TD // 2)
     out = 'public/assets/ae-back-wall.png'
     cv.img.save(out)
     meta = dict(x0=X0, y0=0, tileTop=0, w=W, h=H, topH=TOP_H, midH=MID_H, kickH=KICK_H, tileDim=TD)

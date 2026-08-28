@@ -215,7 +215,9 @@ def floor(seed, seams=True, scuff=False):
             t.vline(x0, y0, y1, C['floor_hi'])
             t.hline(x0, x1, y1, C['floor_seam'])
             t.vline(x1, y0, y1, C['floor_seam'])
-    for _ in range(14):
+    # Kept light: at 14 speckles/tile the floor read as dirty/noisy rather than
+    # textured, especially once tiled edge-to-edge across a 15-wide room.
+    for _ in range(4):
         x, y = rnd.randrange(TD), rnd.randrange(TD)
         t.set(x, y, C['speck'] if rnd.random() < 0.5 else C['floor_hi'])
     if scuff:
