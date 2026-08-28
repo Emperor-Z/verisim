@@ -15,6 +15,7 @@ import { PositionIndicator } from './PositionIndicator.tsx';
 import { SHOW_DEBUG_UI } from './Game.tsx';
 import { ServerGame } from '../hooks/serverGame.ts';
 import { SpeechLayer } from './SpeechLayer.tsx';
+import { BackWall } from './BackWall.tsx';
 import { DEMO_MODE } from '../demo/useBayScript.ts';
 
 // The bay as drawn by scripts/gen_map.py: back wall at y3 down to the open front, left
@@ -143,6 +144,7 @@ export const PixiGame = (props: {
         onpointerup={onMapPointerUp}
         onpointerdown={onMapPointerDown}
       />
+      <BackWall />
       {players.map(
         (p) =>
           // Only show the path for the human player in non-debug mode.

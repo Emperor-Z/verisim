@@ -10,9 +10,14 @@ import { SpritesheetData } from './types';
  * across by 4 directions down.
  */
 
-const FRAME = 32;
+// Must match FRAME_W / FRAME_H in scripts/gen_characters.py — the frame is taller than a
+// map tile (32) on purpose: an adult figure anchored at the feet naturally rises out of
+// its own 32px footprint, which is how top-down RPGs avoid a "chibi standing in a hole"
+// look. See src/components/Character.tsx for the matching anchor.
+const FRAME_W = 32;
+const FRAME_H = 48;
 const FRAMES_PER_DIR = 3;
-const BLOCK_W = FRAME * FRAMES_PER_DIR;
+const BLOCK_W = FRAME_W * FRAMES_PER_DIR;
 
 // Row order within a block, top to bottom.
 const DIRECTIONS = ['down', 'left', 'right', 'up'] as const;
@@ -24,8 +29,8 @@ function blockAt(blockIndex: number): SpritesheetData {
       // Frame keys are `down`, `down2`, `down3` — the naming the animations map expects.
       const key = f === 0 ? direction : `${direction}${f + 1}`;
       frames[key] = {
-        frame: { x: blockIndex * BLOCK_W + f * FRAME, y: row * FRAME, w: FRAME, h: FRAME },
-        sourceSize: { w: FRAME, h: FRAME },
+        frame: { x: blockIndex * BLOCK_W + f * FRAME_W, y: row * FRAME_H, w: FRAME_W, h: FRAME_H },
+        sourceSize: { w: FRAME_W, h: FRAME_H },
         spriteSourceSize: { x: 0, y: 0 },
       };
     }

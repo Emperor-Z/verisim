@@ -4,23 +4,26 @@ Generate public/assets/ae-characters.png — the VeriSim Scenario 01 character s
 
 Replaces the inherited AI Town `32x32folk.png` villagers (anime townsfolk in fantasy
 dress) with four figures that belong in A&E Bay 3. Drawn in the DawnBringer-32 palette
-that `ae-bay-tileset.png` already uses, at the same chibi proportions as the sheet it
-replaces, so the characters sit in the room instead of on top of it.
+that `ae-bay-tileset.png` already uses.
 
-Sheet layout matches the original exactly so the spritesheet descriptors only need new
-coordinates, not a new structure:
+Frame is 32 wide x 48 tall, not the 32x32 "chibi" the sheet started at. Rendered next to
+furniture drawn at roughly one tile per metre, a 32-tall figure (half head, half body) read
+as a toy standing next to real-scale objects. The extra 16 rows go entirely into the torso
+and legs — the head is a fixed ~12px regardless of frame height — which is the standard
+top-down-RPG trick for getting an adult read: the sprite is taller than the tile it stands
+on and is anchored at the feet, so it rises out of its own footprint the way a real person
+would (see src/components/Character.tsx, which anchors on FOOT_Y rather than frame centre).
 
-    one character block = 96w x 128h  (3 walk frames across, 4 directions down)
-    row order within a block: down, left, right, up
-    blocks left-to-right: ray, kelly, sam, clinician
-    sheet = 384 x 128
+Sheet layout: one character block is 96w x 192h (3 walk frames across, 4 directions down,
+each 32x48). Blocks left-to-right: ray, kelly, sam, clinician. Sheet = 384 x 192.
 
 Run:  python3 scripts/gen_characters.py
 """
 
 from PIL import Image
 
-W = H = 32
+FRAME_W = 32
+FRAME_H = 48
 FRAMES = 3
 DIRS = ['down', 'left', 'right', 'up']
 
@@ -63,13 +66,13 @@ P = {
 
 
 class Px:
-    """A 32x32 scratch frame with clipped plotting and region shifting."""
+    """A scratch frame with clipped plotting and region shifting."""
 
     def __init__(self):
         self.d = {}
 
     def set(self, x, y, col):
-        if 0 <= x < W and 0 <= y < H and col is not None:
+        if 0 <= x < FRAME_W and 0 <= y < FRAME_H and col is not None:
             self.d[(x, y)] = col
 
     def hline(self, x0, x1, y, col):
@@ -107,24 +110,23 @@ class Px:
                 self.set(x, y, col)
 
     def to_image(self):
-        img = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+        img = Image.new('RGBA', (FRAME_W, FRAME_H), (0, 0, 0, 0))
         for (x, y), c in self.d.items():
-            if 0 <= x < W and 0 <= y < H:
+            if 0 <= x < FRAME_W and 0 <= y < FRAME_H:
                 img.putpixel((x, y), c if len(c) == 4 else c + (255,))
         return img
 
 
 # ---------------------------------------------------------------- body plan
-# Chibi, matched to the sheet this replaces: head is roughly the top half, but
-# the legs get enough rows to actually show a walk cycle (the first pass gave
-# them four rows and the animation was invisible at 1x).
+# Head stays the same absolute size a 32-tall chibi used (~12px) — the extra frame
+# height goes entirely into torso and legs, which is what turns "toy" into "adult".
 HEAD_TOP = 2
-HEAD_BOT = 15
-NECK_Y = 16
-TORSO_TOP = 17
-TORSO_BOT = 24
-LEG_TOP = 25
-FOOT_Y = 29
+HEAD_BOT = 13
+NECK_Y = 14
+TORSO_TOP = 15
+TORSO_BOT = 33
+LEG_TOP = 34
+FOOT_Y = 45
 
 CX = 16   # centre line: a row spans x = CX-h .. CX-1+h
 
@@ -146,14 +148,22 @@ def head_half(y, direction, wide=0):
 
 
 def torso_half(y, direction, build=0):
-    """Half-width of the torso. Side views are slimmer front-to-back."""
+    """
+    Half-width of the torso. Tapers waist-in, hip-out rather than running as a flat
+    column top to bottom — over 19 rows (up from the original 8) a uniform width reads
+    as a barrel rather than a body.
+    """
     narrow = 2 if direction in ('left', 'right') else 0
-    if y == TORSO_TOP:
+    span = TORSO_BOT - TORSO_TOP
+    t = (y - TORSO_TOP) / max(1, span)
+    if t < 0.12:
+        h = 6                     # shoulders
+    elif t < 0.5:
+        h = 6 - round(1 * ((t - 0.12) / 0.38))   # taper to the waist
+    elif t < 0.7:
         h = 5
-    elif y <= TORSO_TOP + 4:
-        h = 6
     else:
-        h = 5
+        h = 6                     # hips flare back out
     return max(3, h - narrow + build)
 
 
@@ -168,14 +178,15 @@ def draw_head(p, direction, skin, skin_s, wide=0):
         h = head_half(y, direction, wide)
         p.set(CX - 1 + h, y, skin_s)
     # Side views get a nose bump on the facing edge.
+    nose_y = (HEAD_TOP + HEAD_BOT) // 2
     if direction == 'left':
-        h = head_half(11, direction, wide)
-        p.set(CX - h - 1, 11, skin)
-        p.set(CX - h - 1, 12, skin_s)
+        h = head_half(nose_y, direction, wide)
+        p.set(CX - h - 1, nose_y, skin)
+        p.set(CX - h - 1, nose_y + 1, skin_s)
     elif direction == 'right':
-        h = head_half(11, direction, wide)
-        p.set(CX - 1 + h + 1, 11, skin)
-        p.set(CX - 1 + h + 1, 12, skin_s)
+        h = head_half(nose_y, direction, wide)
+        p.set(CX - 1 + h + 1, nose_y, skin)
+        p.set(CX - 1 + h + 1, nose_y + 1, skin_s)
 
 
 def mix(a, b, t):
@@ -197,9 +208,12 @@ def draw_torso(p, direction, garment, garment_d, build=0):
         h = torso_half(y, direction, build)
         p.set(CX - 1 + h, y, garment_d)
         p.set(CX - h, y, mix(garment, (255, 255, 255), 0.18))
-    # Shoulder highlight and hem shadow.
+    # Shoulder highlight, waist crease and hem shadow.
     h = torso_half(TORSO_TOP, direction, build)
     p.hline(CX - h + 1, CX - 2 + h, TORSO_TOP, mix(garment, (255, 255, 255), 0.3))
+    waist_y = TORSO_TOP + round(span * 0.5)
+    h = torso_half(waist_y, direction, build)
+    p.hline(CX - h + 1, CX - 2 + h, waist_y, mix(garment, garment_d, 0.5))
     h = torso_half(TORSO_BOT, direction, build)
     p.hline(CX - h, CX - 1 + h, TORSO_BOT, garment_d)
     if direction in ('down', 'up'):
@@ -208,7 +222,7 @@ def draw_torso(p, direction, garment, garment_d, build=0):
 
 
 def arm_x(direction, build):
-    """x of the left and right arm columns, just outside the torso."""
+    """x of the left and right arm columns, just outside the torso at the shoulder."""
     h = torso_half(TORSO_TOP + 2, direction, build)
     return CX - h - 1, CX - 1 + h + 1
 
@@ -220,9 +234,8 @@ def draw_arms(p, direction, garment, garment_d, skin, sleeve_to, build, swing=0)
     """
     lx, rx = arm_x(direction, build)
     top = TORSO_TOP + 1
-    bot = TORSO_BOT + 1
+    bot = TORSO_BOT + 2   # longer arms for the taller torso; hands reach past the hip
     if direction in ('left', 'right'):
-        # Only the near arm is visible in profile.
         x = lx if direction == 'left' else rx
         for y in range(top + swing, bot + swing):
             p.set(x, y, garment if y <= sleeve_to + swing else skin)
@@ -251,7 +264,7 @@ def draw_legs(p, direction, trouser, trouser_d, shoe, lift_left=0, lift_right=0)
 def draw_face(p, direction, skin_s, eye=None, brow=False):
     """Eyes and brow. 'up' shows the back of the head, so nothing is drawn."""
     eye = eye or P['outline']
-    ey = 10
+    ey = HEAD_TOP + 8
     if direction == 'down':
         p.vline(12, ey, ey + 1, eye)
         p.vline(19, ey, ey + 1, eye)
@@ -362,42 +375,44 @@ def hair_highlight(p, direction, hair):
 
 def draw_accessory(p, kind, direction, build=0):
     """Props that carry the clinical role at a glance."""
+    y0 = TORSO_TOP
     if kind == 'stethoscope' and direction != 'up':
         # Tubing round the neck, bell resting on the chest.
-        p.set(CX - 4, TORSO_TOP, P['darkgrey'])
-        p.set(CX + 3, TORSO_TOP, P['darkgrey'])
-        p.set(CX - 4, TORSO_TOP + 1, P['darkgrey'])
-        p.set(CX + 3, TORSO_TOP + 1, P['darkgrey'])
-        p.set(CX - 3, TORSO_TOP + 2, P['darkgrey'])
-        p.set(CX + 2, TORSO_TOP + 2, P['darkgrey'])
-        p.set(CX + 2, TORSO_TOP + 3, P['lightgrey'])
+        p.set(CX - 4, y0, P['darkgrey'])
+        p.set(CX + 3, y0, P['darkgrey'])
+        p.set(CX - 4, y0 + 1, P['darkgrey'])
+        p.set(CX + 3, y0 + 1, P['darkgrey'])
+        p.set(CX - 3, y0 + 2, P['darkgrey'])
+        p.set(CX + 2, y0 + 2, P['darkgrey'])
+        p.set(CX + 2, y0 + 3, P['lightgrey'])
 
     elif kind == 'lanyard' and direction != 'up':
         # Ribbon over both shoulders with an ID card — fastest read of "staff".
-        p.set(CX - 4, TORSO_TOP, P['blue_l'])
-        p.set(CX + 3, TORSO_TOP, P['blue_l'])
-        p.set(CX - 3, TORSO_TOP + 1, P['blue_l'])
-        p.set(CX + 2, TORSO_TOP + 1, P['blue_l'])
-        p.set(CX - 2, TORSO_TOP + 2, P['blue_l'])
-        p.set(CX + 1, TORSO_TOP + 2, P['blue_l'])
-        p.rect(CX - 2, TORSO_TOP + 3, CX + 1, TORSO_TOP + 5, P['offwhite'])
-        p.hline(CX - 1, CX, TORSO_TOP + 4, P['blue'])
+        p.set(CX - 4, y0, P['blue_l'])
+        p.set(CX + 3, y0, P['blue_l'])
+        p.set(CX - 3, y0 + 1, P['blue_l'])
+        p.set(CX + 2, y0 + 1, P['blue_l'])
+        p.set(CX - 2, y0 + 2, P['blue_l'])
+        p.set(CX + 1, y0 + 2, P['blue_l'])
+        p.rect(CX - 2, y0 + 3, CX + 1, y0 + 5, P['offwhite'])
+        p.hline(CX - 1, CX, y0 + 4, P['blue'])
 
     elif kind == 'phone' and direction != 'up':
         # Held low, screen lit — she reads symptoms off it.
         lx, rx = arm_x(direction, build)
         x = rx if direction != 'right' else lx
-        p.rect(x - 1, TORSO_BOT, x, TORSO_BOT + 2, P['outline'])
-        p.set(x - 1, TORSO_BOT + 1, P['teal'])
+        y = TORSO_BOT + 1
+        p.rect(x - 1, y, x, y + 2, P['outline'])
+        p.set(x - 1, y + 1, P['teal'])
 
     elif kind == 'gown':
         # Open-backed hospital gown: ties down the spine when seen from behind,
         # a plain yoke and neck opening from the front.
         if direction == 'up':
-            p.hline(CX - 3, CX + 2, TORSO_TOP + 2, P['midgrey'])
-            p.hline(CX - 3, CX + 2, TORSO_TOP + 5, P['midgrey'])
+            p.hline(CX - 3, CX + 2, y0 + 3, P['midgrey'])
+            p.hline(CX - 3, CX + 2, y0 + 9, P['midgrey'])
         else:
-            p.hline(CX - 2, CX + 1, TORSO_TOP, P['lightgrey'])
+            p.hline(CX - 2, CX + 1, y0, P['lightgrey'])
 
 
 # ---------------------------------------------------------------- characters
@@ -412,7 +427,7 @@ CHARACTERS = {
         garment=P['offwhite'], garment_d=P['lightgrey'],
         trouser=P['olive'], trouser_d=P['olive_d'],
         shoe=P['brown_d'],
-        build=1, wide=0, sleeve_to=TORSO_TOP + 3, brow=True,
+        build=1, wide=0, sleeve_to=TORSO_TOP + 6, brow=True,
         accessory='gown',
     ),
     # 29, came straight from work — red coat still on, phone in hand.
@@ -433,7 +448,7 @@ CHARACTERS = {
         garment=P['navy'], garment_d=P['navy_d'],
         trouser=P['navy'], trouser_d=P['navy_d'],
         shoe=P['outline'],
-        build=0, wide=0, sleeve_to=TORSO_TOP + 4,
+        build=0, wide=0, sleeve_to=TORSO_TOP + 8,
         accessory='lanyard',
     ),
     # The player. Pale-blue scrubs and a stethoscope — deliberately distinct
@@ -444,7 +459,7 @@ CHARACTERS = {
         garment=P['blue_pale'], garment_d=P['lightgrey'],
         trouser=P['lightgrey'], trouser_d=P['midgrey'],
         shoe=P['white'],
-        build=0, wide=0, sleeve_to=TORSO_TOP + 4,
+        build=0, wide=0, sleeve_to=TORSO_TOP + 8,
         accessory='stethoscope',
     ),
 }
@@ -460,9 +475,8 @@ def contact_shadow(p):
     """
     Soft ellipse under the feet.
 
-    Without it the figures read as pasted onto the floor rather than standing on it —
-    the single clearest difference between these and finished game sprites. Returns the
-    shadow's coordinates so the silhouette keyline can skip them.
+    Without it the figures read as pasted onto the floor rather than standing on it.
+    Returns the shadow's coordinates so the silhouette keyline can skip them.
     """
     cells = set()
     for dx in range(-7, 8):
@@ -520,13 +534,13 @@ def build_frame(spec, direction, frame):
 
 
 def main():
-    sheet = Image.new('RGBA', (96 * len(ORDER), 128), (0, 0, 0, 0))
+    sheet = Image.new('RGBA', (FRAME_W * FRAMES * len(ORDER), FRAME_H * len(DIRS)), (0, 0, 0, 0))
     for bi, name in enumerate(ORDER):
         spec = CHARACTERS[name]
         for di, direction in enumerate(DIRS):
             for f in range(FRAMES):
                 sheet.paste(build_frame(spec, direction, f),
-                            (bi * 96 + f * 32, di * 32))
+                            (bi * FRAME_W * FRAMES + f * FRAME_W, di * FRAME_H))
     out = 'public/assets/ae-characters.png'
     sheet.save(out)
     print(f'wrote {out}  {sheet.size[0]}x{sheet.size[1]}')

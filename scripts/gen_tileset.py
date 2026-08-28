@@ -28,26 +28,26 @@ COLS, ROWS = 8, 5
 C = {
     # Vinyl flooring — pale, desaturated, slightly green. Deliberately low contrast:
     # the floor is the largest surface on screen and must sit behind the characters.
-    'floor':      (198, 205, 196),
-    'floor_alt':  (192, 200, 190),   # neighbouring vinyl square, very slightly off
-    'floor_hi':   (211, 217, 208),
-    'floor_lo':   (178, 187, 178),
-    'floor_seam': (185, 193, 184),
-    'speck':      (168, 178, 170),
+    'floor':      (214, 226, 236),
+    'floor_alt':  (232, 240, 246),   # alternating checker square, brighter than the base
+    'floor_hi':   (246, 250, 253),
+    'floor_lo':   (186, 204, 220),
+    'floor_seam': (198, 214, 228),
+    'speck':      (170, 196, 216),
 
     # Walls
-    'wall_hi':    (240, 243, 241),
-    'wall':       (231, 235, 233),
-    'wall_lo':    (214, 220, 217),
-    'dado':       (196, 204, 202),
+    'wall_hi':    (255, 250, 238),
+    'wall':       (248, 240, 222),
+    'wall_lo':    (226, 214, 190),
+    'dado':       (94, 158, 198),      # Pokemon-Center-style blue accent band
     'skirt':      (122, 132, 130),
     'skirt_hi':   (146, 156, 153),
 
     # Cubicle curtain
-    'curt_hi':    (118, 198, 181),
-    'curt':       (74, 158, 143),
-    'curt_lo':    (55, 122, 110),
-    'curt_dk':    (40, 94, 85),
+    'curt_hi':    (108, 214, 216),
+    'curt':       (48, 176, 176),
+    'curt_lo':    (28, 138, 142),
+    'curt_dk':    (18, 100, 106),
     'rail':       (150, 158, 162),
     'rail_lo':    (110, 118, 122),
 
@@ -59,10 +59,10 @@ C = {
     'linen':      (238, 242, 244),
     'linen_lo':   (214, 221, 226),
     'linen_dk':   (190, 199, 206),
-    'blanket_hi': (138, 170, 214),
-    'blanket':    (108, 142, 190),
-    'blanket_lo': (78, 108, 152),
-    'blanket_dk': (58, 84, 122),
+    'blanket_hi': (232, 128, 128),
+    'blanket':    (210, 78, 88),
+    'blanket_lo': (168, 48, 62),
+    'blanket_dk': (128, 30, 46),
     'pillow':     (250, 251, 252),
 
     # Equipment

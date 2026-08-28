@@ -3,8 +3,10 @@ import { usePlayerPosition } from '../hooks/usePlayerPosition.ts';
 import { Player as ServerPlayer } from '../../convex/aiTown/player.ts';
 import { ServerGame } from '../hooks/serverGame.ts';
 
-// Clear of the 32px sprite's head, with room for the bubble's tail.
-const BUBBLE_OFFSET_Y = 22;
+// Clear of the character's head. Sprites are foot-anchored and 48px tall (see
+// Character.tsx / scripts/gen_characters.py) — the head top sits ~43px above the feet, so
+// the bubble needs to clear that plus room for its own tail.
+const BUBBLE_OFFSET_Y = 51;
 
 function PlayerSpeech({
   game,

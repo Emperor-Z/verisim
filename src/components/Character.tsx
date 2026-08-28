@@ -91,11 +91,21 @@ export const Character = ({
         isPlaying={isMoving}
         textures={spriteSheet.animations[direction]}
         animationSpeed={speed}
-        anchor={{ x: 0.5, y: 0.5 }}
+        // Anchored on the feet (FOOT_Y / FRAME_H, from scripts/gen_characters.py), not the
+        // sprite centre — the frame is 48px tall against a 32px tile on purpose, so the
+        // figure rises out of its own footprint the way an adult standing on a floor tile
+        // would, rather than being squashed to fit inside it.
+        anchor={{ x: 0.5, y: FOOT_ANCHOR }}
       />
     </Container>
   );
 };
+
+// Must match FOOT_Y / FRAME_H in scripts/gen_characters.py.
+const FOOT_ANCHOR = 45 / 48;
+// World-space distance from the feet (the Container's origin) up to the top of the head —
+// FOOT_Y - HEAD_TOP from the same script — used to clear UI drawn above the character.
+const HEAD_CLEARANCE = 45 - 2;
 
 /**
  * Thinking / talking indicator.
@@ -119,14 +129,16 @@ function StatusBadge({ x, filled }: { x: number; filled: boolean }) {
     },
     [x, filled],
   );
-  return <Graphics draw={draw} />;
+  return <Graphics draw={draw} y={-HEAD_CLEARANCE - 8} />;
 }
 
 function ViewerIndicator() {
+  // A ground-level highlight ring at the character's feet, which is the Container's own
+  // origin now that the sprite is foot-anchored — no offset needed.
   const draw = useCallback((g: PIXI.Graphics) => {
     g.clear();
     g.beginFill(0xffff0b, 0.5);
-    g.drawRoundedRect(-10, 10, 20, 10, 100);
+    g.drawRoundedRect(-10, -3, 20, 8, 100);
     g.endFill();
   }, []);
 
