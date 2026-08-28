@@ -67,6 +67,7 @@ https://github.com/michalochman/react-pixi-fiber/issues/145#issuecomment-5315492
                     historicalTime={historicalTime}
                     setSelectedElement={setSelectedElement}
                     speech={mapSpeakersToPlayers(game, bayScript.speaking)}
+                    demoTypingSpeaker={bayScript.typing}
                   />
                 </ConvexProvider>
               </Stage>
@@ -81,6 +82,7 @@ https://github.com/michalochman/react-pixi-fiber/issues/145#issuecomment-5315492
           {DEMO_MODE ? (
             <BayTranscript
               lines={bayScript.revealed}
+              typing={bayScript.typing}
               cue={bayScript.cue}
               onSend={bayScript.send}
               finished={bayScript.finished}

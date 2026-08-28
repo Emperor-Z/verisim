@@ -28,11 +28,14 @@ const SPEAKER_ROLE: Record<Speaker, string> = {
  */
 export function BayTranscript({
   lines,
+  typing,
   cue,
   onSend,
   finished,
 }: {
   lines: ScriptLine[];
+  /** Who is composing their next line right now, text not revealed yet. */
+  typing: Speaker | null;
   /** The clinician's next line, offered in the composer. Null while others are talking. */
   cue: string | null;
   onSend: (text: string) => void;
@@ -43,7 +46,7 @@ export function BayTranscript({
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-  }, [count]);
+  }, [count, typing]);
 
   return (
     <div className="flex flex-col min-h-0 flex-grow">
@@ -53,7 +56,9 @@ export function BayTranscript({
         </h2>
       </div>
       <div className="mt-4 flex-grow overflow-y-auto bg-brown-200 text-black p-2 text-base sm:text-sm">
-        {count === 0 && <p className="text-brown-700 text-center py-4">The bay is quiet.</p>}
+        {count === 0 && !typing && (
+          <p className="text-brown-700 text-center py-4">The bay is quiet.</p>
+        )}
         {lines.map((line, i) => (
           <div key={i} className="leading-tight mb-4">
             <div className="flex gap-3 items-baseline">
@@ -69,10 +74,34 @@ export function BayTranscript({
             </div>
           </div>
         ))}
+        {typing && (
+          <div className="leading-tight mb-4">
+            <span className={clsx('uppercase', SPEAKER_COLOUR[typing])}>{typing}</span>
+            <div className="bubble">
+              <p className="bg-white -mx-3 -my-1">
+                <TypingDots />
+              </p>
+            </div>
+          </div>
+        )}
         <div ref={endRef} />
       </div>
       <Composer cue={cue} onSend={onSend} finished={finished} />
     </div>
+  );
+}
+
+function TypingDots() {
+  return (
+    <span className="inline-flex gap-1 items-center h-4">
+      {[0, 1, 2].map((i) => (
+        <span
+          key={i}
+          className="w-1.5 h-1.5 bg-brown-700 rounded-full animate-bounce"
+          style={{ animationDelay: `${i * 120}ms` }}
+        />
+      ))}
+    </span>
   );
 }
 

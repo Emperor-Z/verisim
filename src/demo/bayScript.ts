@@ -12,7 +12,9 @@
  *   - the consent gate turning: refusal -> de-escalation -> consent, which is the
  *     mechanic the whole scenario exists to exercise
  *
- * Timings are wall-clock milliseconds from the start of playback.
+ * `at` values only fix the authoring order (and give typed player lines something to sort
+ * alongside) — actual pacing is derived from each line's length in src/demo/useBayScript.ts,
+ * not from these numbers, so they don't need to be internally consistent milliseconds.
  */
 
 export type Speaker = 'Ray' | 'Kelly' | 'Sam' | 'You';
@@ -24,12 +26,6 @@ export interface ScriptLine {
   /** When the line lands, in ms from the start of the run. */
   at: number;
 }
-
-/** How long a line stays in its on-map speech bubble after it lands. */
-export const BUBBLE_DWELL_MS = 4200;
-
-/** Pause before the script restarts, so a looping demo doesn't snap back. */
-export const LOOP_GAP_MS = 6000;
 
 export const BAY_SCRIPT: ScriptLine[] = [
   { at: 1_500, speaker: 'Sam', text: 'Bay 3 — Ray Turner, 58. Chest pain, in about twenty minutes ago.' },
@@ -56,6 +52,3 @@ export const BAY_SCRIPT: ScriptLine[] = [
   { at: 99_000, speaker: 'Sam', text: 'On it.' },
   { at: 101_500, speaker: 'Kelly', text: 'Thank you. Sorry. I just— thank you.' },
 ];
-
-export const SCRIPT_DURATION_MS =
-  BAY_SCRIPT[BAY_SCRIPT.length - 1].at + BUBBLE_DWELL_MS + LOOP_GAP_MS;

@@ -9,6 +9,16 @@ import type { ServerGame } from '../hooks/serverGame';
  * instead. If nobody has joined yet the clinician's lines simply have nowhere to appear on
  * the map; they still show in the transcript.
  */
+/** Resolve a single script speaker (e.g. who is typing) to their live player id. */
+export function mapSpeakerToPlayer(game: ServerGame, speaker: Speaker | null): string | undefined {
+  if (!speaker) return undefined;
+  for (const player of game.world.players.values()) {
+    const name = game.playerDescriptions.get(player.id)?.name;
+    if (speaker === 'You' ? player.human : name === speaker) return player.id;
+  }
+  return undefined;
+}
+
 export function mapSpeakersToPlayers(
   game: ServerGame,
   speaking: Map<Speaker, string>,

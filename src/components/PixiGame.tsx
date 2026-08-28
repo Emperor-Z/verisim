@@ -16,6 +16,7 @@ import { SHOW_DEBUG_UI } from './Game.tsx';
 import { ServerGame } from '../hooks/serverGame.ts';
 import { SpeechLayer } from './SpeechLayer.tsx';
 import { BackWall } from './BackWall.tsx';
+import { mapSpeakerToPlayer } from '../demo/speakerMapping.ts';
 import { DEMO_MODE } from '../demo/useBayScript.ts';
 
 // The bay as drawn by scripts/gen_map.py: back wall at y3 down to the open front, left
@@ -33,6 +34,8 @@ export const PixiGame = (props: {
   setSelectedElement: SelectElement;
   /** playerId -> line currently being spoken, drawn above the character. */
   speech?: Map<string, string>;
+  /** Demo build: who is composing their next line right now. */
+  demoTypingSpeaker?: import('../demo/bayScript.ts').Speaker | null;
 }) => {
   // PIXI setup.
   const pixiApp = useApp();
@@ -91,6 +94,7 @@ export const PixiGame = (props: {
   };
   const { width, height, tileDim } = props.game.worldMap;
   const players = [...props.game.world.players.values()];
+  const demoTypingPlayerId = mapSpeakerToPlayer(props.game, props.demoTypingSpeaker ?? null);
 
   // Zoom on the user’s avatar when it is created.
   // Skipped in the demo build, which frames the whole bay instead — otherwise this fires
@@ -161,6 +165,7 @@ export const PixiGame = (props: {
           isViewer={p.id === humanPlayerId}
           onClick={props.setSelectedElement}
           historicalTime={props.historicalTime}
+          demoTyping={p.id === demoTypingPlayerId}
         />
       ))}
       {/* Drawn last so bubbles sit above every sprite, not just the ones before them. */}
