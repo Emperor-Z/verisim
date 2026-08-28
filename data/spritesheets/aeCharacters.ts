@@ -15,7 +15,7 @@ import { SpritesheetData } from './types';
 // its own 32px footprint, which is how top-down RPGs avoid a "chibi standing in a hole"
 // look. See src/components/Character.tsx for the matching anchor.
 const FRAME_W = 32;
-const FRAME_H = 48;
+const FRAME_H = 40;
 const FRAMES_PER_DIR = 3;
 const BLOCK_W = FRAME_W * FRAMES_PER_DIR;
 

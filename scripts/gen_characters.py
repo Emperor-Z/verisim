@@ -6,16 +6,16 @@ Replaces the inherited AI Town `32x32folk.png` villagers (anime townsfolk in fan
 dress) with four figures that belong in A&E Bay 3. Drawn in the DawnBringer-32 palette
 that `ae-bay-tileset.png` already uses.
 
-Frame is 32 wide x 48 tall, not the 32x32 "chibi" the sheet started at. Rendered next to
-furniture drawn at roughly one tile per metre, a 32-tall figure (half head, half body) read
-as a toy standing next to real-scale objects. The extra 16 rows go entirely into the torso
-and legs — the head is a fixed ~12px regardless of frame height — which is the standard
-top-down-RPG trick for getting an adult read: the sprite is taller than the tile it stands
-on and is anchored at the feet, so it rises out of its own footprint the way a real person
-would (see src/components/Character.tsx, which anchors on FOOT_Y rather than frame centre).
+Frame is 32 wide x 40 tall, not the 32x32 "chibi" the sheet started at (a 32x48 first pass
+overshot — tall enough to look like the figures were on stilts). The extra 8 rows go
+entirely into the torso and legs — the head is a fixed ~12px regardless of frame height —
+which is the standard top-down-RPG trick for getting an adult read: the sprite is taller
+than the tile it stands on and is anchored at the feet, so it rises out of its own
+footprint the way a real person would, just not by much (see src/components/Character.tsx,
+which anchors on FOOT_Y rather than frame centre).
 
-Sheet layout: one character block is 96w x 192h (3 walk frames across, 4 directions down,
-each 32x48). Blocks left-to-right: ray, kelly, sam, clinician. Sheet = 384 x 192.
+Sheet layout: one character block is 96w x 160h (3 walk frames across, 4 directions down,
+each 32x40). Blocks left-to-right: ray, kelly, sam, clinician. Sheet = 384 x 160.
 
 Run:  python3 scripts/gen_characters.py
 """
@@ -23,7 +23,7 @@ Run:  python3 scripts/gen_characters.py
 from PIL import Image
 
 FRAME_W = 32
-FRAME_H = 48
+FRAME_H = 40
 FRAMES = 3
 DIRS = ['down', 'left', 'right', 'up']
 
@@ -124,9 +124,9 @@ HEAD_TOP = 2
 HEAD_BOT = 13
 NECK_Y = 14
 TORSO_TOP = 15
-TORSO_BOT = 33
-LEG_TOP = 34
-FOOT_Y = 45
+TORSO_BOT = 28
+LEG_TOP = 29
+FOOT_Y = 36
 
 CX = 16   # centre line: a row spans x = CX-h .. CX-1+h
 
@@ -234,7 +234,7 @@ def draw_arms(p, direction, garment, garment_d, skin, sleeve_to, build, swing=0)
     """
     lx, rx = arm_x(direction, build)
     top = TORSO_TOP + 1
-    bot = TORSO_BOT + 2   # longer arms for the taller torso; hands reach past the hip
+    bot = TORSO_BOT + 1   # hands reach to about the hip
     if direction in ('left', 'right'):
         x = lx if direction == 'left' else rx
         for y in range(top + swing, bot + swing):

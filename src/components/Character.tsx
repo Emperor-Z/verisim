@@ -102,10 +102,10 @@ export const Character = ({
 };
 
 // Must match FOOT_Y / FRAME_H in scripts/gen_characters.py.
-const FOOT_ANCHOR = 45 / 48;
+const FOOT_ANCHOR = 36 / 40;
 // World-space distance from the feet (the Container's origin) up to the top of the head —
 // FOOT_Y - HEAD_TOP from the same script — used to clear UI drawn above the character.
-const HEAD_CLEARANCE = 45 - 2;
+const HEAD_CLEARANCE = 36 - 2;
 
 /**
  * Thinking / talking indicator.
