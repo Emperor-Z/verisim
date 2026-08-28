@@ -49,17 +49,17 @@ body {
 }
 
 .game-title {
-  background: linear-gradient(to bottom, #fec742, #dd7c42);
+  background: linear-gradient(to bottom, #eaf6ff, #4a90c4);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0px 0.08em 0px #6e2146);
+  filter: drop-shadow(0px 0.08em 0px #17324a);
 }
 
 .game-frame {
   border-width: 6px;
   border-style: solid;
-  border-color: #0d1014;
+  border-color: #0e1420;
   border-radius: 10px;
 }
 
