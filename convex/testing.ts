@@ -8,6 +8,7 @@ import {
   query,
 } from './_generated/server';
 import { v } from 'convex/values';
+import { CLINICIAN_CHARACTER } from '../data/characters';
 import schema from './schema';
 import { DELETE_BATCH_SIZE } from './constants';
 import { kickEngine, startEngine, stopEngine } from './aiTown/main';
@@ -233,7 +234,7 @@ export const forceJoinHuman = internalMutation({
         worldId: world._id,
         playerId: args.playerId as any,
         name: 'Dr. Ashad',
-        character: 'f4',
+        character: CLINICIAN_CHARACTER,
         description: 'You are the clinician assessing Ray in A&E Bay 3.',
       });
     }

@@ -1,11 +1,4 @@
-import { data as f1SpritesheetData } from './spritesheets/f1';
-import { data as f2SpritesheetData } from './spritesheets/f2';
-import { data as f3SpritesheetData } from './spritesheets/f3';
-import { data as f4SpritesheetData } from './spritesheets/f4';
-import { data as f5SpritesheetData } from './spritesheets/f5';
-import { data as f6SpritesheetData } from './spritesheets/f6';
-import { data as f7SpritesheetData } from './spritesheets/f7';
-import { data as f8SpritesheetData } from './spritesheets/f8';
+import { ray, kelly, sam, clinician } from './spritesheets/aeCharacters';
 
 // VeriSim Scenario 01: "Chest Pain, A&E Bay 3"
 // Full persona cards with escalation/de-escalation triggers, consent behaviour,
@@ -15,7 +8,7 @@ import { data as f8SpritesheetData } from './spritesheets/f8';
 export const Descriptions = [
   {
     name: 'Ray',
-    character: 'f4',
+    character: 'ray',
     identity: `You are Raymond "Ray" Turner, 58, a self-employed builder from Coventry, currently
       sitting in A&E Bay 3. You came in with central chest tightness that started 2 hours ago,
       radiating down your left arm. You are sweaty and feel sick, but you keep insisting it is
@@ -35,7 +28,7 @@ export const Descriptions = [
   },
   {
     name: 'Kelly',
-    character: 'f6',
+    character: 'kelly',
     identity: `You are Kelly Turner, 29, Ray Turner's daughter. You drove your dad to A&E and you
       are terrified something is seriously wrong, and you channel that fear into demands. You
       interrupt the clinician mid-question, answer questions that were addressed to your dad,
@@ -52,7 +45,7 @@ export const Descriptions = [
   },
   {
     name: 'Sam',
-    character: 'f1',
+    character: 'sam',
     identity: `You are Sam Okafor, 34, an A&E staff nurse with 8 years of experience, currently
       covering four bays including Bay 3. You are competent, calm, direct, and quietly protective
       of your patients. You execute clear, specific instructions promptly and well. You push back
@@ -69,54 +62,35 @@ export const Descriptions = [
 
 export const characters = [
   {
-    name: 'f1',
-    textureUrl: '/ai-town/assets/32x32folk.png',
-    spritesheetData: f1SpritesheetData,
+    name: 'ray',
+    textureUrl: '/ai-town/assets/ae-characters.png',
+    spritesheetData: ray,
+    speed: 0.08,
+  },
+  {
+    name: 'kelly',
+    textureUrl: '/ai-town/assets/ae-characters.png',
+    spritesheetData: kelly,
     speed: 0.1,
   },
   {
-    name: 'f2',
-    textureUrl: '/ai-town/assets/32x32folk.png',
-    spritesheetData: f2SpritesheetData,
+    name: 'sam',
+    textureUrl: '/ai-town/assets/ae-characters.png',
+    spritesheetData: sam,
     speed: 0.1,
   },
   {
-    name: 'f3',
-    textureUrl: '/ai-town/assets/32x32folk.png',
-    spritesheetData: f3SpritesheetData,
-    speed: 0.1,
-  },
-  {
-    name: 'f4',
-    textureUrl: '/ai-town/assets/32x32folk.png',
-    spritesheetData: f4SpritesheetData,
-    speed: 0.1,
-  },
-  {
-    name: 'f5',
-    textureUrl: '/ai-town/assets/32x32folk.png',
-    spritesheetData: f5SpritesheetData,
-    speed: 0.1,
-  },
-  {
-    name: 'f6',
-    textureUrl: '/ai-town/assets/32x32folk.png',
-    spritesheetData: f6SpritesheetData,
-    speed: 0.1,
-  },
-  {
-    name: 'f7',
-    textureUrl: '/ai-town/assets/32x32folk.png',
-    spritesheetData: f7SpritesheetData,
-    speed: 0.1,
-  },
-  {
-    name: 'f8',
-    textureUrl: '/ai-town/assets/32x32folk.png',
-    spritesheetData: f8SpritesheetData,
+    name: 'clinician',
+    textureUrl: '/ai-town/assets/ae-characters.png',
+    spritesheetData: clinician,
     speed: 0.1,
   },
 ];
+
+// The sprite the human player joins as. Named rather than inlined because both the
+// normal join path (convex/world.ts) and the demo force-join (convex/testing.ts) need
+// it, and they previously disagreed — the latter hardcoded Ray's own sprite.
+export const CLINICIAN_CHARACTER = 'clinician';
 
 // Characters move at 0.75 tiles per second.
 export const movementSpeed = 0.75;
