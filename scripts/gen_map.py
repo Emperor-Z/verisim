@@ -75,8 +75,10 @@ for x in range(X0, X1 + 1):
     put(walls, x, WALL_TOP_Y, T['wall_upper'])
     put(walls, x, WALL_Y, T['wall_lower'])
 
-# Fittings set into the back wall, above the bed.
-put(walls, BED_X + 1, WALL_Y, T['monitor'])
+# Fittings set into the back wall, above the bed. The monitor is two tiles tall — screen
+# on the upper wall row, arm and leads on the lower — so its leads run down toward Ray.
+put(walls, BED_X + 1, WALL_TOP_Y, T['monitor'])
+put(walls, BED_X + 1, WALL_Y, T['monitor_arm'])
 put(walls, BED_X, WALL_Y, T['oxygen'])
 put(walls, 6, WALL_Y, T['gel'])
 put(walls, 5, WALL_TOP_Y, T['clock'])

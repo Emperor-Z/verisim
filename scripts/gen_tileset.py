@@ -29,32 +29,41 @@ C = {
     # Vinyl flooring — pale, desaturated, slightly green. Deliberately low contrast:
     # the floor is the largest surface on screen and must sit behind the characters.
     'floor':      (198, 205, 196),
-    'floor_hi':   (208, 214, 205),
-    'floor_lo':   (184, 192, 183),
-    'floor_seam': (192, 200, 191),
-    'speck':      (170, 180, 172),
+    'floor_alt':  (192, 200, 190),   # neighbouring vinyl square, very slightly off
+    'floor_hi':   (211, 217, 208),
+    'floor_lo':   (178, 187, 178),
+    'floor_seam': (185, 193, 184),
+    'speck':      (168, 178, 170),
 
     # Walls
+    'wall_hi':    (240, 243, 241),
     'wall':       (231, 235, 233),
     'wall_lo':    (214, 220, 217),
+    'dado':       (196, 204, 202),
     'skirt':      (122, 132, 130),
     'skirt_hi':   (146, 156, 153),
 
     # Cubicle curtain
+    'curt_hi':    (118, 198, 181),
     'curt':       (74, 158, 143),
     'curt_lo':    (55, 122, 110),
-    'curt_hi':    (104, 186, 170),
+    'curt_dk':    (40, 94, 85),
     'rail':       (150, 158, 162),
     'rail_lo':    (110, 118, 122),
 
     # Bed / linen
+    'metal_hi':   (214, 222, 228),
     'metal':      (176, 184, 190),
     'metal_lo':   (128, 137, 144),
+    'metal_dk':   (92, 100, 108),
     'linen':      (238, 242, 244),
     'linen_lo':   (214, 221, 226),
+    'linen_dk':   (190, 199, 206),
+    'blanket_hi': (138, 170, 214),
     'blanket':    (108, 142, 190),
     'blanket_lo': (78, 108, 152),
-    'pillow':     (248, 250, 251),
+    'blanket_dk': (58, 84, 122),
+    'pillow':     (250, 251, 252),
 
     # Equipment
     'case':       (58, 64, 72),
@@ -163,39 +172,63 @@ class Tile:
 # ---------------------------------------------------------------- surfaces
 def floor(seed, seams=True, scuff=False):
     """
-    Vinyl sheet flooring. Seams are drawn on two edges only and kept close in value to
-    the fill, so a field of these reads as a floor rather than as a grid of boxes — the
-    heavy grey gridlines were most of what made the old floor look like a placeholder.
+    Vinyl flooring, laid as 16px squares so one map tile carries four of them.
+
+    Drawing the floor at half the tile size is the cheapest way to add detail to the
+    largest surface on screen: the eye reads laid squares rather than one flat colour,
+    and the repeat is much harder to spot than a 32px grid was. Tones stay within a few
+    values of each other so it stays behind the characters.
     """
     t = Tile(C['floor'])
     rnd = random.Random(seed)
-    for _ in range(10):
+    half = TD // 2
+    for qy in range(2):
+        for qx in range(2):
+            # Alternate the two near-identical vinyl tones in a checker.
+            if (qx + qy + seed) % 2:
+                t.rect(qx * half, qy * half, qx * half + half - 1, qy * half + half - 1,
+                       C['floor_alt'])
+            # Grout: a light top/left edge and a darker bottom/right, per square.
+            x0, y0 = qx * half, qy * half
+            x1, y1 = x0 + half - 1, y0 + half - 1
+            t.hline(x0, x1, y0, C['floor_hi'])
+            t.vline(x0, y0, y1, C['floor_hi'])
+            t.hline(x0, x1, y1, C['floor_seam'])
+            t.vline(x1, y0, y1, C['floor_seam'])
+    for _ in range(14):
         x, y = rnd.randrange(TD), rnd.randrange(TD)
-        t.set(x, y, C['speck'] if rnd.random() < 0.4 else C['floor_hi'])
-    if seams:
-        t.hline(0, TD - 1, 0, C['floor_seam'])
-        t.vline(0, 0, TD - 1, C['floor_seam'])
+        t.set(x, y, C['speck'] if rnd.random() < 0.5 else C['floor_hi'])
     if scuff:
-        for i in range(7):
-            t.set(6 + i, 20 + (i % 2), C['floor_lo'])
-        for i in range(5):
-            t.set(19 + i, 11 - (i % 2), C['floor_lo'])
+        for i in range(9):
+            t.set(5 + i, 21 + (i % 3 == 0), C['floor_lo'])
+        for i in range(6):
+            t.set(18 + i, 10 - (i % 2), C['floor_lo'])
     return t
 
 
 def wall_upper():
     """Painted wall above the dado rail."""
     t = Tile(C['wall'])
+    t.hline(0, TD - 1, 0, C['wall_hi'])
+    t.hline(0, TD - 1, 1, C['wall_hi'])
     t.hline(0, TD - 1, TD - 1, C['wall_lo'])
     return t
 
 
 def wall_lower():
-    """Wall meeting the floor: dado shadow at the top, rubber skirting at the base."""
+    """
+    Wall meeting the floor. Carries the dado rail, the wipe-clean band below it and the
+    rubber skirting — three horizontal bands rather than one flat fill, which is what
+    stops a long wall run reading as a blank strip.
+    """
     t = Tile(C['wall'])
-    t.hline(0, TD - 1, 0, C['wall_lo'])
+    t.hline(0, TD - 1, 0, C['dado'])          # dado rail
+    t.hline(0, TD - 1, 1, C['wall_hi'])
+    t.rect(0, 2, TD - 1, TD - 8, C['wall'])
+    t.hline(0, TD - 1, TD - 7, C['wall_lo'])
     t.rect(0, TD - 6, TD - 1, TD - 1, C['skirt'])
     t.hline(0, TD - 1, TD - 6, C['skirt_hi'])
+    t.hline(0, TD - 1, TD - 1, (98, 108, 106))
     return t
 
 
@@ -206,13 +239,21 @@ def wall_side(left=True):
     """
     t = Tile(C['wall'])
     if left:
-        t.rect(TD - 6, 0, TD - 1, TD - 1, C['skirt'])
-        t.vline(TD - 6, 0, TD - 1, C['skirt_hi'])
-        t.vline(0, 0, TD - 1, C['wall_lo'])
+        t.vline(TD - 1, 0, TD - 1, C['dado'])          # dado rail, running vertically
+        t.vline(TD - 2, 0, TD - 1, C['wall_hi'])
+        t.rect(TD - 8, 0, TD - 3, TD - 1, C['wall'])
+        t.vline(TD - 9, 0, TD - 1, C['wall_lo'])
+        t.rect(TD - 15, 0, TD - 10, TD - 1, C['skirt'])
+        t.vline(TD - 10, 0, TD - 1, C['skirt_hi'])
+        t.vline(TD - 15, 0, TD - 1, (98, 108, 106))
     else:
-        t.rect(0, 0, 5, TD - 1, C['skirt'])
-        t.vline(5, 0, TD - 1, C['skirt_hi'])
-        t.vline(TD - 1, 0, TD - 1, C['wall_lo'])
+        t.vline(0, 0, TD - 1, C['dado'])
+        t.vline(1, 0, TD - 1, C['wall_hi'])
+        t.rect(2, 0, 7, TD - 1, C['wall'])
+        t.vline(8, 0, TD - 1, C['wall_lo'])
+        t.rect(9, 0, 14, TD - 1, C['skirt'])
+        t.vline(9, 0, TD - 1, C['skirt_hi'])
+        t.vline(14, 0, TD - 1, (98, 108, 106))
     return t
 
 
@@ -232,16 +273,17 @@ def curtain(offset=0):
     reads as continuous fabric instead of a repeating stripe.
     """
     t = Tile(C['curt'])
+    # Each fold runs dark -> mid -> light -> mid across 8px, so the fabric turns rather
+    # than stripes. A two-tone version read as a barcode.
+    ramp = [C['curt_dk'], C['curt_lo'], C['curt'], C['curt_hi'],
+            C['curt_hi'], C['curt'], C['curt_lo'], C['curt_dk']]
     for x in range(TD):
-        phase = (x + offset) % 8
-        if phase in (0, 1):
-            t.vline(x, 0, TD - 1, C['curt_lo'])
-        elif phase in (4, 5):
-            t.vline(x, 0, TD - 1, C['curt_hi'])
+        t.vline(x, 0, TD - 1, ramp[(x + offset) % 8])
     # Mesh panel along the top, as real cubicle curtains have.
     for x in range(0, TD, 2):
         t.set(x, 2, C['curt_hi'])
         t.set(x, 4, C['curt_hi'])
+    t.hline(0, TD - 1, 0, C['curt_dk'])
     return t
 
 
@@ -275,41 +317,64 @@ def _bed_full():
     def vline(x, y0, y1, col):
         rect(x, y0, x, y1, col)
 
-    L, R = 6, BED_W - 7          # frame edges
-    HEAD, FOOT = 4, BED_H - 5
+    L, R = 6, BED_W - 7
+    HEAD, FOOT = 6, BED_H - 7
 
-    # Frame
+    # Castors, drawn first so the frame sits over them.
+    for cx in (L + 1, R - 3):
+        for cy in (HEAD + 3, FOOT - 5):
+            rect(cx, cy, cx + 2, cy + 3, C['metal_dk'])
+            hline(cx, cx + 2, cy, C['metal_lo'])
+
+    # Frame and mattress platform
     rect(L, HEAD, R, FOOT, C['metal_lo'])
+    rect(L + 1, HEAD + 1, R - 1, FOOT - 1, C['metal'])
     rect(L + 2, HEAD + 2, R - 2, FOOT - 2, C['linen'])
 
-    # Head and foot boards
-    rect(L - 2, HEAD - 4, R + 2, HEAD + 1, C['metal'])
-    hline(L - 2, R + 2, HEAD - 4, (198, 206, 212))
-    rect(L - 2, FOOT - 1, R + 2, FOOT + 4, C['metal'])
-    hline(L - 2, R + 2, FOOT - 1, (198, 206, 212))
+    # Head and foot boards, with a lit top edge and a shaded underside
+    for y0, y1 in ((HEAD - 5, HEAD + 1), (FOOT - 1, FOOT + 5)):
+        rect(L - 2, y0, R + 2, y1, C['metal'])
+        hline(L - 2, R + 2, y0, C['metal_hi'])
+        hline(L - 2, R + 2, y0 + 1, C['metal_hi'])
+        hline(L - 2, R + 2, y1, C['metal_dk'])
+        vline(L - 2, y0, y1, C['metal_hi'])
+        vline(R + 2, y0, y1, C['metal_lo'])
 
-    # Pillow
-    rect(L + 5, HEAD + 5, R - 5, HEAD + 22, C['pillow'])
-    for x in range(L + 5, R - 4):
-        px[x, HEAD + 22] = C['linen_lo'] + (255,)
-    vline(R - 5, HEAD + 5, HEAD + 22, C['linen_lo'])
+    # Pillow, with a crease and a shaded underside so it has loft
+    py0, py1 = HEAD + 5, HEAD + 23
+    rect(L + 4, py0, R - 4, py1, C['pillow'])
+    hline(L + 4, R - 4, py0, C['linen'])
+    hline(L + 4, R - 4, py1, C['linen_dk'])
+    hline(L + 5, R - 5, py1 - 1, C['linen_lo'])
+    vline(R - 4, py0, py1, C['linen_lo'])
+    for x in range(L + 9, R - 8):
+        px[x, py0 + 9] = C['linen_lo'] + (255,)
 
-    # Blanket over the lower two thirds, with a turned-back top edge
-    top = HEAD + 30
+    # Blanket over the lower two thirds: turned-back sheet, then folds that get closer
+    # together toward the foot, which is what stops it reading as corrugated iron.
+    top = HEAD + 32
     rect(L + 2, top, R - 2, FOOT - 2, C['blanket'])
-    rect(L + 2, top, R - 2, top + 4, C['linen'])        # turned-back sheet
-    hline(L + 2, R - 2, top + 5, C['blanket_lo'])
+    rect(L + 2, top, R - 2, top + 5, C['linen'])
     hline(L + 2, R - 2, top, C['linen_lo'])
-    # Soft folds, irregular so it does not read as corrugation
-    for y in (top + 14, top + 27, top + 41):
-        hline(L + 4, R - 4, y, C['blanket_lo'])
+    hline(L + 2, R - 2, top + 5, C['linen_dk'])
+    hline(L + 2, R - 2, top + 6, C['blanket_hi'])
+    for dy, shade in ((13, 'blanket_lo'), (24, 'blanket_lo'), (33, 'blanket_dk'),
+                      (40, 'blanket_lo')):
+        y = top + dy
+        if y < FOOT - 2:
+            hline(L + 3, R - 3, y, C[shade])
+            hline(L + 4, R - 4, y + 1, C['blanket_hi'])
+    vline(R - 2, top, FOOT - 2, C['blanket_dk'])
+    vline(L + 2, top, FOOT - 2, C['blanket_hi'])
 
-    # Cot side rails — the clearest signal that this is a hospital bed
-    for x0 in (L - 3, R + 1):
-        rect(x0, HEAD + 12, x0 + 2, FOOT - 8, C['metal'])
-        vline(x0 + 2, HEAD + 12, FOOT - 8, C['metal_lo'])
-        for y in (HEAD + 12, HEAD + 24, FOOT - 8):
-            rect(x0, y, x0 + 2, y + 1, (206, 214, 220))
+    # Cot side rails: two horizontal bars in a frame, the clearest signal that this is a
+    # hospital trolley and not a bed.
+    for x0, lit in ((L - 4, True), (R + 1, False)):
+        rect(x0, HEAD + 10, x0 + 3, FOOT - 6, C['metal_lo'])
+        rect(x0 + (0 if lit else 1), HEAD + 10, x0 + (2 if lit else 3), FOOT - 6, C['metal'])
+        for y in (HEAD + 10, HEAD + 22, HEAD + 34, FOOT - 6):
+            if y < FOOT - 5:
+                rect(x0, y, x0 + 3, y + 1, C['metal_hi'])
     return im
 
 
@@ -335,21 +400,57 @@ def bed_piece(col, row):
 
 
 # ---------------------------------------------------------------- props
-def monitor():
-    """Cardiac monitor on a wall bracket, showing a trace."""
+def monitor_screen():
+    """
+    Cardiac monitor, upper tile: the case and the display.
+
+    Given a whole tile to itself the screen can carry a real rhythm strip and a second
+    numeric row, instead of the few pixels it had when the whole unit was one tile.
+    """
     t = Tile()
-    t.rect(4, 4, 27, 24, C['case'])
-    t.hline(4, 27, 4, C['case_lo'])
-    t.rect(6, 6, 25, 20, C['screen'])
-    # ECG trace: flat line with a QRS complex, plus a pulse-ox reading below.
-    base = 13
-    for x in range(7, 25):
-        t.set(x, base, C['trace'])
-    for dx, dy in ((12, -1), (13, -5), (14, 3), (15, -1)):
-        t.set(dx, base + dy, C['trace'])
-        t.set(dx, base + dy + 1, C['trace'])
-    t.hline(7, 10, 18, C['amber'])
-    t.rect(12, 25, 19, 27, C['case_lo'])   # bracket
+    t.rect(2, 6, 29, 31, C['case'])
+    t.hline(2, 29, 6, (86, 94, 104))          # lit top bezel
+    t.hline(2, 29, 7, (72, 80, 90))
+    t.vline(2, 6, 31, (86, 94, 104))
+    t.vline(29, 6, 31, C['case_lo'])
+    t.rect(4, 9, 27, 28, C['screen'])
+    t.frame(4, 9, 27, 28, (10, 20, 16))
+
+    # ECG rhythm: two beats across the tile, each a small P wave then a QRS spike.
+    base = 17
+    for x in range(5, 27):
+        t.set(x, base, (36, 96, 62))
+    for origin in (7, 18):
+        t.set(origin, base - 2, C['trace'])
+        t.set(origin + 1, base - 2, C['trace'])
+        for dx, dy in ((4, -1), (5, -7), (6, 4), (7, 0)):
+            t.set(origin + dx, base + dy, C['trace'])
+            t.set(origin + dx, base + dy + 1, C['trace'])
+    for x in range(5, 27):
+        if (x % 3) == 0:
+            t.set(x, base, C['trace'])
+
+    # Numeric row underneath: heart rate in green, sats in amber.
+    for x in range(6, 12):
+        t.set(x, 24, C['trace'])
+        t.set(x, 25, C['trace'] if x % 2 else (16, 60, 40))
+    for x in range(18, 24):
+        t.set(x, 24, C['amber'])
+        t.set(x, 25, C['amber'] if x % 2 else (110, 84, 34))
+    return t
+
+
+def monitor_arm():
+    """Cardiac monitor, lower tile: wall arm and the leads running down to the patient."""
+    t = Tile()
+    t.rect(12, 0, 19, 5, C['case_lo'])         # neck
+    t.rect(9, 5, 22, 9, C['metal_lo'])         # bracket
+    t.hline(9, 22, 5, C['metal'])
+    # Leads trailing off toward the bed.
+    for i, x in enumerate((13, 16, 18)):
+        t.vline(x, 10, 16 + i * 3, C['case'])
+        t.set(x + 1, 16 + i * 3, C['case'])
+        t.set(x + 2, 17 + i * 3, C['case'])
     return t
 
 
@@ -373,14 +474,20 @@ def iv_stand(top=True):
 
 
 def cabinet():
-    """Bedside locker."""
+    """Bedside locker: a lit top surface over two drawers, so it reads as having height."""
     t = Tile()
-    t.rect(4, 8, 27, 29, C['wood'])
-    t.hline(4, 27, 8, (206, 168, 128))
-    t.frame(4, 8, 27, 29, C['wood_lo'])
-    t.hline(6, 25, 16, C['wood_lo'])
-    t.hline(13, 18, 13, C['wood_lo'])
-    t.hline(13, 18, 22, C['wood_lo'])
+    t.rect(3, 4, 28, 9, (214, 178, 138))      # top surface, catching the light
+    t.hline(3, 28, 4, (232, 198, 160))
+    t.hline(3, 28, 9, C['wood_lo'])
+    t.rect(3, 10, 28, 29, C['wood'])          # front
+    t.vline(3, 10, 29, (206, 168, 128))
+    t.vline(28, 10, 29, C['wood_lo'])
+    t.hline(3, 28, 29, (120, 88, 62))
+    for y in (11, 20):                        # drawers
+        t.hline(5, 26, y, (206, 168, 128))
+        t.hline(5, 26, y + 7, C['wood_lo'])
+        t.hline(12, 19, y + 4, (140, 104, 74))
+        t.hline(12, 19, y + 3, (232, 198, 160))
     return t
 
 
@@ -554,7 +661,8 @@ TILES = [
     ('bed_fl',        lambda: bed_piece(0, 2)),
     ('bed_fr',        lambda: bed_piece(1, 2)),
     ('cabinet',       standing(cabinet)),
-    ('monitor',       standing(monitor, dy=2, alpha=0.22)),
+    ('monitor',       standing(monitor_screen, dy=2, alpha=0.22)),
+    ('monitor_arm',   standing(monitor_arm, dy=2, alpha=0.18)),
 
     ('iv_top',        standing(lambda: iv_stand(True), dy=0, alpha=0.18)),
     ('iv_bot',        standing(lambda: iv_stand(False), alpha=0.26)),

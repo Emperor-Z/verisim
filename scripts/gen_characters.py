@@ -178,13 +178,33 @@ def draw_head(p, direction, skin, skin_s, wide=0):
         p.set(CX - 1 + h + 1, 12, skin_s)
 
 
+def mix(a, b, t):
+    return tuple(round(x + (y - x) * t) for x, y in zip(a[:3], b[:3]))
+
+
 def draw_torso(p, direction, garment, garment_d, build=0):
+    """
+    Garment with a light-to-dark fall from shoulder to hem, a shaded side, and a centre
+    seam. A flat fill left every character looking like a coloured rectangle next to
+    furniture that now has three or four tones on it.
+    """
+    span = TORSO_BOT - TORSO_TOP
     for y in range(TORSO_TOP, TORSO_BOT + 1):
         h = torso_half(y, direction, build)
-        p.hline(CX - h, CX - 1 + h, y, garment)
+        t = (y - TORSO_TOP) / max(1, span)
+        p.hline(CX - h, CX - 1 + h, y, mix(garment, garment_d, 0.45 * t))
     for y in range(TORSO_TOP, TORSO_BOT + 1):
         h = torso_half(y, direction, build)
         p.set(CX - 1 + h, y, garment_d)
+        p.set(CX - h, y, mix(garment, (255, 255, 255), 0.18))
+    # Shoulder highlight and hem shadow.
+    h = torso_half(TORSO_TOP, direction, build)
+    p.hline(CX - h + 1, CX - 2 + h, TORSO_TOP, mix(garment, (255, 255, 255), 0.3))
+    h = torso_half(TORSO_BOT, direction, build)
+    p.hline(CX - h, CX - 1 + h, TORSO_BOT, garment_d)
+    if direction in ('down', 'up'):
+        for y in range(TORSO_TOP + 2, TORSO_BOT):
+            p.set(CX, y, mix(garment, garment_d, 0.55))
 
 
 def arm_x(direction, build):
@@ -235,6 +255,8 @@ def draw_face(p, direction, skin_s, eye=None, brow=False):
     if direction == 'down':
         p.vline(12, ey, ey + 1, eye)
         p.vline(19, ey, ey + 1, eye)
+        p.set(12, ey, mix(eye, (255, 255, 255), 0.35))
+        p.set(19, ey, mix(eye, (255, 255, 255), 0.35))
         p.hline(15, 16, ey + 4, skin_s)          # mouth
         if brow:
             p.hline(11, 13, ey - 2, skin_s)
@@ -323,6 +345,19 @@ def draw_hair(p, direction, style, hair, hair_d, wide=0):
             h = head_half(y, direction, wide)
             p.set(CX - h + 1, y, hair_d)
             p.set(CX - 2 + h, y, hair_d)
+
+
+def hair_highlight(p, direction, hair):
+    """A sheen across the upper-left of the hair mass, so it reads as a rounded head."""
+    lit = mix(hair, (255, 255, 255), 0.34)
+    for y in range(HEAD_TOP + 1, HEAD_TOP + 4):
+        h = head_half(y, direction)
+        for x in range(CX - h + 1, CX - h + 5):
+            if p.d.get((x, y)) == hair:
+                p.set(x, y, lit)
+    for x in range(CX - 4, CX + 1):
+        if p.d.get((x, HEAD_TOP + 1)) == hair:
+            p.set(x, HEAD_TOP + 1, lit)
 
 
 def draw_accessory(p, kind, direction, build=0):
@@ -475,6 +510,7 @@ def build_frame(spec, direction, frame):
     draw_head(p, direction, spec['skin'], spec['skin_s'], spec['wide'])
     draw_hair(p, direction, spec['hair_style'], spec['hair'], spec['hair_d'],
               spec['wide'])
+    hair_highlight(p, direction, spec['hair'])
     draw_face(p, direction, spec['skin_s'], brow=spec.get('brow', False))
     draw_accessory(p, spec['accessory'], direction, spec['build'])
 

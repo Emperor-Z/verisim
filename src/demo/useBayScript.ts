@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   BAY_SCRIPT,
   BUBBLE_DWELL_MS,
@@ -15,9 +15,11 @@ export interface BayScriptState {
   revealed: ScriptLine[];
   /** Who is mid-utterance right now, and what they are saying. */
   speaking: Map<Speaker, string>;
+  /** Add a line the clinician typed. */
+  send: (text: string) => void;
 }
 
-const EMPTY: BayScriptState = { revealed: [], speaking: new Map() };
+const NOOP = () => {};
 
 /**
  * Plays BAY_SCRIPT on a wall clock and loops it.
@@ -28,6 +30,11 @@ const EMPTY: BayScriptState = { revealed: [], speaking: new Map() };
  */
 export function useBayScript(enabled: boolean): BayScriptState {
   const [elapsed, setElapsed] = useState(0);
+  // Lines the clinician typed, stamped with the script time they were sent at so they
+  // sort into the transcript where they were said and survive the loop.
+  const [typed, setTyped] = useState<ScriptLine[]>([]);
+  const elapsedRef = useRef(0);
+  elapsedRef.current = elapsed;
 
   useEffect(() => {
     if (!enabled) return;
@@ -38,14 +45,22 @@ export function useBayScript(enabled: boolean): BayScriptState {
     return () => clearInterval(id);
   }, [enabled]);
 
+  const send = useCallback((text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    setTyped((prev) => [...prev, { speaker: 'You', text: trimmed, at: elapsedRef.current }]);
+  }, []);
+
   return useMemo(() => {
-    if (!enabled) return EMPTY;
-    const revealed = BAY_SCRIPT.filter((l) => l.at <= elapsed);
+    if (!enabled) return { revealed: [], speaking: new Map(), send: NOOP };
+    const revealed = [...BAY_SCRIPT, ...typed]
+      .filter((l) => l.at <= elapsed)
+      .sort((a, b) => a.at - b.at);
     const speaking = new Map<Speaker, string>();
     for (const line of revealed) {
       // Last line wins if someone talks twice inside one dwell window.
       if (elapsed - line.at <= BUBBLE_DWELL_MS) speaking.set(line.speaker, line.text);
     }
-    return { revealed, speaking };
-  }, [enabled, elapsed]);
+    return { revealed, speaking, send };
+  }, [enabled, elapsed, typed, send]);
 }
