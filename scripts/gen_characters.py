@@ -157,14 +157,14 @@ def torso_half(y, direction, build=0):
     span = TORSO_BOT - TORSO_TOP
     t = (y - TORSO_TOP) / max(1, span)
     if t < 0.12:
-        h = 6                     # shoulders
+        h = 7                     # shoulders
     elif t < 0.5:
-        h = 6 - round(1 * ((t - 0.12) / 0.38))   # taper to the waist
+        h = 7 - round(1 * ((t - 0.12) / 0.38))   # taper to the waist
     elif t < 0.7:
-        h = 5
+        h = 6
     else:
-        h = 6                     # hips flare back out
-    return max(3, h - narrow + build)
+        h = 7                     # hips flare back out
+    return max(4, h - narrow + build)
 
 
 def draw_head(p, direction, skin, skin_s, wide=0):
@@ -222,15 +222,16 @@ def draw_torso(p, direction, garment, garment_d, build=0):
 
 
 def arm_x(direction, build):
-    """x of the left and right arm columns, just outside the torso at the shoulder."""
+    """x of the left and right arm columns (2px each), just outside the torso shoulder."""
     h = torso_half(TORSO_TOP + 2, direction, build)
-    return CX - h - 1, CX - 1 + h + 1
+    return CX - h - 2, CX - 1 + h + 1
 
 
 def draw_arms(p, direction, garment, garment_d, skin, sleeve_to, build, swing=0):
     """
-    Arms hang at the sides. `swing` is the walk-cycle offset: +1/-1 moves each arm
-    in opposite directions so the figure reads as walking, not sliding.
+    Arms hang at the sides, 2px wide — a single column read as a wire against the taller
+    body. `swing` is the walk-cycle offset: +1/-1 moves each arm in opposite directions so
+    the figure reads as walking, not sliding.
     """
     lx, rx = arm_x(direction, build)
     top = TORSO_TOP + 1
@@ -238,22 +239,28 @@ def draw_arms(p, direction, garment, garment_d, skin, sleeve_to, build, swing=0)
     if direction in ('left', 'right'):
         x = lx if direction == 'left' else rx
         for y in range(top + swing, bot + swing):
-            p.set(x, y, garment if y <= sleeve_to + swing else skin)
+            col = garment if y <= sleeve_to + swing else skin
+            p.set(x, y, col)
+            p.set(x + 1, y, col)
     else:
         for y in range(top + swing, bot + swing):
-            p.set(lx, y, garment if y <= sleeve_to + swing else skin)
+            col = garment if y <= sleeve_to + swing else skin
+            p.set(lx, y, col)
+            p.set(lx + 1, y, col)
         for y in range(top - swing, bot - swing):
-            p.set(rx, y, garment_d if y <= sleeve_to - swing else skin)
+            col = garment_d if y <= sleeve_to - swing else skin
+            p.set(rx - 1, y, col)
+            p.set(rx, y, col)
 
 
 def draw_legs(p, direction, trouser, trouser_d, shoe, lift_left=0, lift_right=0):
     """Two legs with a gap between them, so the walk cycle is legible at 1x."""
     if direction in ('left', 'right'):
-        lx0, lx1 = 13, 15
-        rx0, rx1 = 16, 18
+        lx0, lx1 = 12, 15
+        rx0, rx1 = 16, 19
     else:
-        lx0, lx1 = 12, 14
-        rx0, rx1 = 17, 19
+        lx0, lx1 = 11, 14
+        rx0, rx1 = 17, 20
     for y in range(LEG_TOP, FOOT_Y):
         p.hline(lx0, lx1, y - lift_left, trouser)
         p.hline(rx0, rx1, y - lift_right, trouser_d)
