@@ -232,6 +232,53 @@ def door(cv, x0):
     cv.rect(x0 + TD - 9, y0 + 32, x0 + TD - 7, y0 + 36, C['metal'])
 
 
+_DIGITS = {
+    '3': ['111', '..1', '111', '..1', '111'],
+}
+
+
+def bay_sign(cv, cx):
+    """Wall plaque — the bay number, the way a real ward bay is signed."""
+    x0, y0 = cx - 13, 4
+    cv.rect(x0, y0, x0 + 26, y0 + 20, C['dado'])
+    cv.frame(x0, y0, x0 + 26, y0 + 20, mix(C['dado'], C['hilite_tint'], 0.4))
+    scale = 3
+    for ry, row in enumerate(_DIGITS['3']):
+        for rx, bit in enumerate(row):
+            if bit == '1':
+                cv.rect(x0 + 8 + rx * scale, y0 + 3 + ry * scale,
+                        x0 + 8 + rx * scale + scale - 1, y0 + 3 + ry * scale + scale - 1,
+                        C['wall_hi'])
+
+
+def supply_shelf(cv, cx):
+    """
+    Wall-mounted stock shelving — three shelves of colour-coded boxes. The wall had
+    equipment but nothing that reads as day-to-day clutter; a shelf like this is what
+    sells a bay as lived-in rather than a showroom.
+    """
+    x0, y0 = cx - 15, TOP_H - 4
+    h = MID_H - 8
+    cv.rect(x0, y0, x0 + 30, y0 + h, C['wood_lo'])
+    cv.rect(x0 + 1, y0 + 1, x0 + 29, y0 + h - 1, C['wall_lo'])
+    shelf_ys = [y0 + 2, y0 + 2 + h // 3, y0 + 2 + 2 * h // 3]
+    box_colours = [(214, 96, 92), (94, 168, 214), (232, 186, 58), (96, 176, 128)]
+    rnd = random.Random(88)
+    for si, sy in enumerate(shelf_ys):
+        cv.hline(x0 + 1, x0 + 29, sy, C['wood'])
+        cv.hline(x0 + 1, x0 + 29, sy + 1, C['wood_lo'])
+        x = x0 + 2
+        while x < x0 + 27:
+            w = rnd.choice((4, 5, 6))
+            if x + w > x0 + 28:
+                break
+            col = box_colours[(si + x) % len(box_colours)]
+            bh = rnd.choice((5, 6))
+            cv.rect(x, sy + 2, x + w - 1, sy + 1 + bh, col)
+            cv.hline(x, x + w - 1, sy + 2, mix(col, C['hilite_tint'], 0.35))
+            x += w + 1
+
+
 def main():
     cv = Canvas(W, H)
     base_wall(cv)
@@ -242,6 +289,9 @@ def main():
     monitor(cv, (BED_X - X0) * TD + TD)
     oxygen(cv, (BED_X - 1 - X0) * TD + TD // 2)
     gel(cv, (BED_X + 2 - X0) * TD + TD // 2)
+    # Free stretch of wall between the bed's fittings and the neighbouring bay.
+    bay_sign(cv, (BED_X + 4 - X0) * TD + TD // 2)
+    supply_shelf(cv, (BED_X + 6 - X0) * TD + TD // 2)
     out = 'public/assets/ae-back-wall.png'
     cv.img.save(out)
     meta = dict(x0=X0, y0=0, tileTop=0, w=W, h=H, topH=TOP_H, midH=MID_H, kickH=KICK_H, tileDim=TD)

@@ -740,6 +740,36 @@ def waste_bin():
     return t
 
 
+def supply_shelf():
+    """
+    Wall-mounted supply shelving: three shelves of colour-coded stock boxes and bottles.
+    The room had equipment but nothing that reads as "stuff a working bay actually has
+    lying around" — a shelf like this is what sells a space as lived-in rather than a
+    showroom, and it's the single most detail-dense object in most hospital tilesets.
+    """
+    t = wall_lower()
+    t.rect(2, 4, 29, 27, C['wood_lo'])            # unit frame
+    t.rect(3, 5, 28, 26, C['wall_lo'])             # recessed back panel
+    shelf_ys = (5, 13, 21)
+    box_colours = [(214, 96, 92), (94, 168, 214), (232, 186, 58), (96, 176, 128)]
+    rnd = random.Random(77)
+    for si, y0 in enumerate(shelf_ys):
+        t.hline(3, 28, y0, C['wood'])              # the shelf board itself
+        t.hline(3, 28, y0 + 1, C['wood_lo'])
+        x = 4
+        while x < 26:
+            w = rnd.choice((4, 5, 6))
+            if x + w > 27:
+                break
+            col = box_colours[(si + x) % len(box_colours)]
+            h = rnd.choice((5, 6))
+            t.rect(x, y0 + 2, x + w - 1, y0 + 1 + h, col)
+            t.hline(x, x + w - 1, y0 + 2, mix(col, C['hilite_tint'], 0.35))
+            t.hline(x, x + w - 1, y0 + 1 + h, mix(col, C['shadow_tint'], 0.3))
+            x += w + 1
+    return t
+
+
 def gel_dispenser():
     """Wall-mounted hand gel — small, but it is the detail that says 'hospital'."""
     t = wall_lower()
@@ -756,6 +786,41 @@ def oxygen_outlet():
     t.frame(9, 5, 22, 15, C['line_soft'])
     t.rect(11, 8, 14, 12, (108, 172, 214))
     t.rect(17, 8, 20, 12, C['case'])
+    return t
+
+
+# 3x5 bitmap digits, scaled 2x when drawn — just enough characters for a bay number sign.
+_DIGITS = {
+    '3': ['111', '..1', '111', '..1', '111'],
+    'B': ['11.', '1.1', '11.', '1.1', '11.'],
+    'A': ['.1.', '1.1', '111', '1.1', '1.1'],
+    'Y': ['1.1', '1.1', '.1.', '.1.', '.1.'],
+}
+
+
+def _draw_text(t, x0, y0, text, col, scale=2, gap=1):
+    x = x0
+    for ch in text:
+        if ch == ' ':
+            x += 3 * scale + gap
+            continue
+        rows = _DIGITS.get(ch)
+        if not rows:
+            continue
+        for ry, row in enumerate(rows):
+            for rx, bit in enumerate(row):
+                if bit == '1':
+                    t.rect(x + rx * scale, y0 + ry * scale,
+                           x + rx * scale + scale - 1, y0 + ry * scale + scale - 1, col)
+        x += 3 * scale + gap
+
+
+def bay_sign():
+    """Wall plaque by the door — the number every real ward bay is signed with."""
+    t = wall_upper()
+    t.rect(3, 5, 28, 24, C['dado'])
+    t.frame(3, 5, 28, 24, mix(C['dado'], (255, 255, 255), 0.4))
+    _draw_text(t, 10, 7, '3', C['wall_hi'], scale=4)
     return t
 
 
@@ -823,6 +888,7 @@ TILES = [
     ('wall_upper',    wall_upper),
     ('wall_lower',    wall_lower),
     ('gel',           gel_dispenser),
+    ('supply_shelf',  supply_shelf),
     ('oxygen',        oxygen_outlet),
 
     ('curtain_rail',  curtain_rail),
@@ -832,6 +898,7 @@ TILES = [
     ('curtain_hem',   standing(curtain_hem, dx=3, dy=1, alpha=0.26, light=False)),
     ('door',          door),
     ('clock',         clock),
+    ('bay_sign',      bay_sign),
     ('ceiling_light', ceiling_light),
 
     ('bed_hl',        lambda: bed_piece(0, 0)),
