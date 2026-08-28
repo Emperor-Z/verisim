@@ -20,6 +20,7 @@ Run:  python3 scripts/gen_backwall.py
 """
 
 import json
+import random
 from PIL import Image
 
 TD = 32
@@ -88,17 +89,38 @@ class Canvas:
         self.vline(x1, y0, y1, col)
 
 
+def mix(a, b, t):
+    return tuple(round(x + (y - x) * t) for x, y in zip(a[:3], b[:3]))
+
+
+def _speckle(cv, x0, y0, x1, y1, seed, density=40):
+    rnd = random.Random(seed)
+    for _ in range(density):
+        x = rnd.randrange(x0, x1 + 1)
+        y = rnd.randrange(y0, y1 + 1)
+        cv.set(x, y, mix(C['wall'], C['wall_lo'], 0.4 if rnd.random() < 0.6 else 0.2))
+
+
 def base_wall(cv):
-    """The plain wall face: painted panel, dado rail, wipe-clean band, skirting, kick."""
+    """
+    The plain wall face: painted panel, moulded dado rail, wipe-clean band, skirting,
+    kick. The dado is a lit top edge, a groove and a shadowed underside — a real rail
+    profile, not the single flat line the first version drew — matching the moulding
+    scripts/gen_tileset.py's wall_lower() carries.
+    """
     cv.rect(0, 0, W - 1, TOP_H - 1, C['wall'])
     cv.hline(0, W - 1, 0, C['wall_hi'])
     cv.hline(0, W - 1, 1, C['wall_hi'])
     cv.hline(0, W - 1, TOP_H - 1, C['wall_lo'])
+    _speckle(cv, 0, 0, W - 1, TOP_H - 1, seed=21)
 
     y0 = TOP_H
-    cv.hline(0, W - 1, y0, C['dado'])
-    cv.hline(0, W - 1, y0 + 1, C['wall_hi'])
-    cv.rect(0, y0 + 2, W - 1, y0 + MID_H - 8, C['wall'])
+    cv.hline(0, W - 1, y0, mix(C['dado'], (255, 255, 255), 0.35))
+    cv.hline(0, W - 1, y0 + 1, C['dado'])
+    cv.hline(0, W - 1, y0 + 2, mix(C['dado'], (0, 0, 0), 0.25))
+    cv.hline(0, W - 1, y0 + 3, C['wall_hi'])
+    cv.rect(0, y0 + 4, W - 1, y0 + MID_H - 8, C['wall'])
+    _speckle(cv, 0, y0 + 4, W - 1, y0 + MID_H - 8, seed=22)
     cv.hline(0, W - 1, y0 + MID_H - 7, C['wall_lo'])
     cv.rect(0, y0 + MID_H - 6, W - 1, y0 + MID_H - 1, C['skirt'])
     cv.hline(0, W - 1, y0 + MID_H - 6, C['skirt_hi'])

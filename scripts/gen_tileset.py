@@ -215,25 +215,38 @@ def floor(seed, seams=True, scuff=False):
     return t
 
 
-def wall_upper():
+def _wall_speckle(t, seed, density=10):
+    """Faint texture on a painted wall panel — a flat fill read as a colour swatch."""
+    rnd = random.Random(seed)
+    for _ in range(density):
+        x, y = rnd.randrange(TD), rnd.randrange(TD)
+        t.set(x, y, mix(C['wall'], C['wall_lo'], 0.4 if rnd.random() < 0.6 else 0.2))
+
+
+def wall_upper(seed=1):
     """Painted wall above the dado rail."""
     t = Tile(C['wall'])
     t.hline(0, TD - 1, 0, C['wall_hi'])
     t.hline(0, TD - 1, 1, C['wall_hi'])
     t.hline(0, TD - 1, TD - 1, C['wall_lo'])
+    _wall_speckle(t, seed)
     return t
 
 
-def wall_lower():
+def wall_lower(seed=2):
     """
     Wall meeting the floor. Carries the dado rail, the wipe-clean band below it and the
     rubber skirting — three horizontal bands rather than one flat fill, which is what
-    stops a long wall run reading as a blank strip.
+    stops a long wall run reading as a blank strip. The dado is a moulded rail with its
+    own bevel (a lit top edge, a groove, a shadowed underside), not a single flat line.
     """
     t = Tile(C['wall'])
-    t.hline(0, TD - 1, 0, C['dado'])          # dado rail
-    t.hline(0, TD - 1, 1, C['wall_hi'])
-    t.rect(0, 2, TD - 1, TD - 8, C['wall'])
+    t.hline(0, TD - 1, 0, mix(C['dado'], (255, 255, 255), 0.35))   # rail: lit top edge
+    t.hline(0, TD - 1, 1, C['dado'])
+    t.hline(0, TD - 1, 2, mix(C['dado'], (0, 0, 0), 0.25))          # groove
+    t.hline(0, TD - 1, 3, C['wall_hi'])
+    t.rect(0, 4, TD - 1, TD - 8, C['wall'])
+    _wall_speckle(t, seed)
     t.hline(0, TD - 1, TD - 7, C['wall_lo'])
     t.rect(0, TD - 6, TD - 1, TD - 1, C['skirt'])
     t.hline(0, TD - 1, TD - 6, C['skirt_hi'])
@@ -241,66 +254,111 @@ def wall_lower():
     return t
 
 
-def wall_side(left=True):
+def wall_side(left=True, seed=3):
     """
     Vertical wall run. Needs its own tile because wall_lower's skirting is a horizontal
     band, which reads as a floor stripe when stacked down a side wall.
     """
     t = Tile(C['wall'])
     if left:
-        t.vline(TD - 1, 0, TD - 1, C['dado'])          # dado rail, running vertically
-        t.vline(TD - 2, 0, TD - 1, C['wall_hi'])
-        t.rect(TD - 8, 0, TD - 3, TD - 1, C['wall'])
-        t.vline(TD - 9, 0, TD - 1, C['wall_lo'])
-        t.rect(TD - 15, 0, TD - 10, TD - 1, C['skirt'])
-        t.vline(TD - 10, 0, TD - 1, C['skirt_hi'])
-        t.vline(TD - 15, 0, TD - 1, (98, 108, 106))
+        t.vline(TD - 1, 0, TD - 1, mix(C['dado'], (255, 255, 255), 0.35))
+        t.vline(TD - 2, 0, TD - 1, C['dado'])
+        t.vline(TD - 3, 0, TD - 1, mix(C['dado'], (0, 0, 0), 0.25))
+        t.vline(TD - 4, 0, TD - 1, C['wall_hi'])
+        t.rect(TD - 9, 0, TD - 5, TD - 1, C['wall'])
+        t.vline(TD - 10, 0, TD - 1, C['wall_lo'])
+        t.rect(TD - 16, 0, TD - 11, TD - 1, C['skirt'])
+        t.vline(TD - 11, 0, TD - 1, C['skirt_hi'])
+        t.vline(TD - 16, 0, TD - 1, (98, 108, 106))
     else:
-        t.vline(0, 0, TD - 1, C['dado'])
-        t.vline(1, 0, TD - 1, C['wall_hi'])
-        t.rect(2, 0, 7, TD - 1, C['wall'])
-        t.vline(8, 0, TD - 1, C['wall_lo'])
-        t.rect(9, 0, 14, TD - 1, C['skirt'])
-        t.vline(9, 0, TD - 1, C['skirt_hi'])
-        t.vline(14, 0, TD - 1, (98, 108, 106))
+        t.vline(0, 0, TD - 1, mix(C['dado'], (255, 255, 255), 0.35))
+        t.vline(1, 0, TD - 1, C['dado'])
+        t.vline(2, 0, TD - 1, mix(C['dado'], (0, 0, 0), 0.25))
+        t.vline(3, 0, TD - 1, C['wall_hi'])
+        t.rect(4, 0, 8, TD - 1, C['wall'])
+        t.vline(9, 0, TD - 1, C['wall_lo'])
+        t.rect(10, 0, 15, TD - 1, C['skirt'])
+        t.vline(10, 0, TD - 1, C['skirt_hi'])
+        t.vline(15, 0, TD - 1, (98, 108, 106))
+    _wall_speckle(t, seed, density=6)
     return t
 
 
 def curtain_rail():
-    """Ceiling track the cubicle curtain hangs from."""
+    """Ceiling track the cubicle curtain hangs from, with hook fittings along it."""
     t = Tile(C['wall'])
-    t.rect(0, 6, TD - 1, 9, C['rail'])
-    t.hline(0, TD - 1, 9, C['rail_lo'])
-    for x in range(2, TD, 6):
-        t.vline(x, 10, 12, C['rail_lo'])
+    t.rect(0, 5, TD - 1, 8, C['rail'])
+    t.hline(0, TD - 1, 5, mix(C['rail'], (255, 255, 255), 0.3))
+    t.hline(0, TD - 1, 8, C['rail_lo'])
+    for x in range(1, TD, 5):
+        t.vline(x, 9, 11, C['rail_lo'])          # hook stems
+        t.rect(x - 1, 11, x + 1, 12, C['metal'])  # hook rings
     return t
 
 
-def curtain(offset=0):
+def _curtain_fold_ramp():
     """
-    Hanging cubicle curtain. The fold pattern is offset per variant so a run of them
-    reads as continuous fabric instead of a repeating stripe.
+    A run of folds with irregular widths and irregular depth, rather than one tone
+    repeating on a fixed period — a perfectly even repeat is what made the first version
+    read as a barcode instead of fabric. Each fold still goes dark -> light -> dark so
+    the cloth still reads as turning, just not on a metronome.
+    """
+    widths = [5, 3, 6, 4, 5, 3, 6]                # sums to 32, deliberately uneven
+    depths = [0.9, 0.55, 1.0, 0.4, 0.85, 0.5, 0.75]
+    ramp = []
+    for w, d in zip(widths, depths):
+        for i in range(w):
+            # 0 at the fold edges (shadow), 1 at the fold centre (lit) — a triangle wave
+            # scaled by that fold's own depth, so some folds are barely creased and
+            # others are deep.
+            t = 1 - abs((i / max(1, w - 1)) * 2 - 1)
+            ramp.append(t * d)
+    return ramp[:TD]
+
+
+def curtain(variant=0):
+    """
+    Hanging cubicle curtain fabric. Two variants with unrelated fold rhythms (rather than
+    the same pattern offset by a few pixels) so a run of these tiles doesn't repeat on a
+    visible beat, plus a sparse woven-in dot print, which is what real NHS cubicle
+    curtains almost always carry rather than a plain colour.
     """
     t = Tile(C['curt'])
-    # Each fold runs dark -> mid -> light -> mid across 8px, so the fabric turns rather
-    # than stripes. A two-tone version read as a barcode.
-    ramp = [C['curt_dk'], C['curt_lo'], C['curt'], C['curt_hi'],
-            C['curt_hi'], C['curt'], C['curt_lo'], C['curt_dk']]
+    ramp = _curtain_fold_ramp()
+    if variant:
+        ramp = ramp[5:] + ramp[:5]               # unrelated phase, not just mirrored
     for x in range(TD):
-        t.vline(x, 0, TD - 1, ramp[(x + offset) % 8])
-    # Mesh panel along the top, as real cubicle curtains have.
-    for x in range(0, TD, 2):
-        t.set(x, 2, C['curt_hi'])
-        t.set(x, 4, C['curt_hi'])
+        depth = ramp[x]
+        col = mix(C['curt_dk'], C['curt_hi'], depth) if depth < 0.5 else             mix(C['curt'], C['curt_hi'], (depth - 0.5) * 2)
+        t.vline(x, 0, TD - 1, col)
+    # Print: a faint diamond every so often, only on the lighter part of a fold so it
+    # doesn't muddy the creases.
+    rnd = random.Random(11 + variant)
+    for _ in range(5):
+        x = rnd.randrange(3, TD - 3)
+        y = rnd.randrange(3, TD - 3)
+        if ramp[x] > 0.5:
+            for dx, dy in ((0, -1), (0, 1), (-1, 0), (1, 0)):
+                t.set(x + dx, y + dy, mix(C['curt_hi'], (255, 255, 255), 0.5))
+    # Mesh header panel, as real cubicle curtains have, brick-offset rather than a flat grid.
+    for row, dy in enumerate((2, 4)):
+        for x in range((row * 2) % 4, TD, 4):
+            t.set(x, dy, C['curt_hi'])
     t.hline(0, TD - 1, 0, C['curt_dk'])
     return t
 
 
 def curtain_hem():
-    """Bottom of the curtain, hanging clear of the floor."""
-    t = curtain(0)
-    t.clear(0, TD - 8, TD - 1, TD - 1)
-    t.hline(0, TD - 1, TD - 9, C['curt_lo'])
+    """Bottom of the curtain: a slightly uneven drape rather than a flat cut, with a
+    weighted hem line."""
+    t = curtain(1)
+    wave = [0, 1, 1, 0, -1, 0, 1, 1, 0, -1, 0, 1, 1, 0, -1, 0,
+            0, 1, 1, 0, -1, 0, 1, 1, 0, -1, 0, 1, 1, 0, -1, 0]
+    base = TD - 9
+    for x in range(TD):
+        y = base + wave[x % len(wave)]
+        t.clear(x, y + 1, x, TD - 1)
+        t.set(x, y, C['curt_lo'])
     return t
 
 
@@ -709,7 +767,7 @@ TILES = [
     ('curtain_rail',  curtain_rail),
     # Hanging fabric: the shadow falls sideways onto the floor, not down.
     ('curtain_a',     standing(lambda: curtain(0), dx=3, dy=0, alpha=0.26, light=False)),
-    ('curtain_b',     standing(lambda: curtain(3), dx=3, dy=0, alpha=0.26, light=False)),
+    ('curtain_b',     standing(lambda: curtain(1), dx=3, dy=0, alpha=0.26, light=False)),
     ('curtain_hem',   standing(curtain_hem, dx=3, dy=1, alpha=0.26, light=False)),
     ('door',          door),
     ('clock',         clock),
