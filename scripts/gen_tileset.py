@@ -73,6 +73,10 @@ C = {
 }
 
 
+def _blend(dst, src, a):
+    return tuple(round(d + (sv - d) * a) for d, sv in zip(dst, src))
+
+
 class Tile:
     def __init__(self, bg=None):
         self.img = Image.new('RGBA', (TD, TD), (0, 0, 0, 0))
@@ -100,6 +104,54 @@ class Tile:
         for y in range(max(0, y0), min(TD, y1 + 1)):
             for x in range(max(0, x0), min(TD, x1 + 1)):
                 self.img.putpixel((x, y), (0, 0, 0, 0))
+
+    def shade(self, x, y, col, a):
+        """Blend `col` over whatever is already at (x, y). Used for shadow and light."""
+        if not (0 <= x < TD and 0 <= y < TD):
+            return
+        cur = self.img.getpixel((x, y))
+        if cur[3] == 0:
+            return
+        self.img.putpixel((x, y), _blend(cur[:3], col, a) + (cur[3],))
+
+    def cast_shadow(self, dx=3, dy=3, alpha=0.30):
+        """
+        Drop the tile's own silhouette onto the floor behind it.
+
+        This is most of what gives a top-down tile the read of having height: without it
+        every prop looks painted onto the floor rather than standing on it. Drawn under
+        the existing pixels, offset toward the bottom-right so every prop in the room
+        agrees on a single light source up and to the left.
+        """
+        src = self.img.copy()
+        out = Image.new('RGBA', (TD, TD), (0, 0, 0, 0))
+        for y in range(TD):
+            for x in range(TD):
+                if src.getpixel((x, y))[3] > 0:
+                    tx, ty = x + dx, y + dy
+                    if 0 <= tx < TD and 0 <= ty < TD:
+                        out.putpixel((tx, ty), (44, 52, 54, int(255 * alpha)))
+        out.alpha_composite(src)
+        self.img = out
+
+    def key_light(self, top=0.28, bottom=0.22):
+        """
+        Light the upper-left edge of the silhouette and darken the lower-right, so flat
+        fills pick up a suggestion of volume.
+        """
+        src = self.img.copy()
+
+        def solid(x, y):
+            return 0 <= x < TD and 0 <= y < TD and src.getpixel((x, y))[3] > 0
+
+        for y in range(TD):
+            for x in range(TD):
+                if not solid(x, y):
+                    continue
+                if not solid(x, y - 1) or not solid(x - 1, y):
+                    self.shade(x, y, (255, 255, 255), top)
+                elif not solid(x, y + 1) or not solid(x + 1, y):
+                    self.shade(x, y, (40, 48, 52), bottom)
 
     def frame(self, x0, y0, x1, y1, col):
         self.hline(x0, x1, y0, col)
@@ -261,7 +313,18 @@ def _bed_full():
     return im
 
 
-_BED = _bed_full()
+def _bed_shadowed():
+    im = _bed_full()
+    out = Image.new('RGBA', (BED_W, BED_H), (0, 0, 0, 0))
+    for y in range(BED_H):
+        for x in range(BED_W):
+            if im.getpixel((x, y))[3] > 0 and x + 3 < BED_W and y + 3 < BED_H:
+                out.putpixel((x + 3, y + 3), (44, 52, 54, 76))
+    out.alpha_composite(im)
+    return out
+
+
+_BED = _bed_shadowed()
 
 
 def bed_piece(col, row):
@@ -442,6 +505,26 @@ def blank():
     return Tile()
 
 
+def standing(fn, dx=3, dy=3, alpha=0.30, light=True):
+    """Wrap a prop so it casts a shadow and catches the key light."""
+    def build():
+        t = fn()
+        if light:
+            t.key_light()
+        t.cast_shadow(dx, dy, alpha)
+        return t
+    return build
+
+
+def floor_ao():
+    """Floor tile carrying the wall's ambient occlusion along its top edge."""
+    t = floor(9)
+    for i, a in enumerate((0.34, 0.24, 0.16, 0.09, 0.04)):
+        for x in range(TD):
+            t.shade(x, i, (40, 48, 52), a)
+    return t
+
+
 # ---------------------------------------------------------------- sheet
 # Order is the tile id. Names are what data/build_ae_map.py refers to.
 TILES = [
@@ -455,9 +538,10 @@ TILES = [
     ('oxygen',        oxygen_outlet),
 
     ('curtain_rail',  curtain_rail),
-    ('curtain_a',     lambda: curtain(0)),
-    ('curtain_b',     lambda: curtain(3)),
-    ('curtain_hem',   curtain_hem),
+    # Hanging fabric: the shadow falls sideways onto the floor, not down.
+    ('curtain_a',     standing(lambda: curtain(0), dx=3, dy=0, alpha=0.26, light=False)),
+    ('curtain_b',     standing(lambda: curtain(3), dx=3, dy=0, alpha=0.26, light=False)),
+    ('curtain_hem',   standing(curtain_hem, dx=3, dy=1, alpha=0.26, light=False)),
     ('door_l',        lambda: door(True)),
     ('door_r',        lambda: door(False)),
     ('clock',         clock),
@@ -469,19 +553,20 @@ TILES = [
     ('bed_mr',        lambda: bed_piece(1, 1)),
     ('bed_fl',        lambda: bed_piece(0, 2)),
     ('bed_fr',        lambda: bed_piece(1, 2)),
-    ('cabinet',       cabinet),
-    ('monitor',       monitor),
+    ('cabinet',       standing(cabinet)),
+    ('monitor',       standing(monitor, dy=2, alpha=0.22)),
 
-    ('iv_top',        lambda: iv_stand(True)),
-    ('iv_bot',        lambda: iv_stand(False)),
-    ('chair',         chair),
-    ('stool',         stool),
-    ('trolley_top',   lambda: trolley(True)),
-    ('trolley_bot',   lambda: trolley(False)),
-    ('sink',          sink),
-    ('sharps',        sharps_bin),
+    ('iv_top',        standing(lambda: iv_stand(True), dy=0, alpha=0.18)),
+    ('iv_bot',        standing(lambda: iv_stand(False), alpha=0.26)),
+    ('chair',         standing(chair)),
+    ('stool',         standing(stool)),
+    ('trolley_top',   standing(lambda: trolley(True), dy=0, alpha=0.22)),
+    ('trolley_bot',   standing(lambda: trolley(False))),
+    ('sink',          standing(sink)),
+    ('sharps',        standing(sharps_bin)),
 
-    ('waste',         waste_bin),
+    ('waste',         standing(waste_bin)),
+    ('floor_ao',      floor_ao),
     ('wall_side_l',   lambda: wall_side(True)),
     ('wall_side_r',   lambda: wall_side(False)),
     ('blank',         blank),

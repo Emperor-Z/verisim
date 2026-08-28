@@ -17,6 +17,11 @@ import { ServerGame } from '../hooks/serverGame.ts';
 import { SpeechLayer } from './SpeechLayer.tsx';
 import { DEMO_MODE } from '../demo/useBayScript.ts';
 
+// The bay as drawn by scripts/gen_map.py: back wall at y3 down to the open front, left
+// wall to cubicle curtain. Kept here rather than imported from the map data because it is
+// a framing choice, not a property of the map.
+const BAY_3_FRAME = { minX: 4, maxX: 14, minY: 3, maxY: 12 };
+
 export const PixiGame = (props: {
   worldId: Id<'worlds'>;
   engineId: Id<'engines'>;
@@ -86,9 +91,11 @@ export const PixiGame = (props: {
   const { width, height, tileDim } = props.game.worldMap;
   const players = [...props.game.world.players.values()];
 
-  // Zoom on the user’s avatar when it is created
+  // Zoom on the user’s avatar when it is created.
+  // Skipped in the demo build, which frames the whole bay instead — otherwise this fires
+  // after the framing effect and snaps the camera onto the clinician.
   useEffect(() => {
-    if (!viewportRef.current || humanPlayerId === undefined) return;
+    if (DEMO_MODE || !viewportRef.current || humanPlayerId === undefined) return;
 
     const humanPlayer = props.game.world.players.get(humanPlayerId)!;
     viewportRef.current.animate({
@@ -100,21 +107,27 @@ export const PixiGame = (props: {
   // Before anyone has joined, frame Bay 3 itself rather than the map's top-left corner — this is
   // a single-room scenario, not a village the camera should default to a corner of.
   useEffect(() => {
-    if (!viewportRef.current || humanPlayerId !== undefined) return;
+    if (DEMO_MODE || !viewportRef.current || humanPlayerId !== undefined) return;
     viewportRef.current.moveCenter(new PIXI.Point(10 * tileDim, 10 * tileDim));
   }, [humanPlayerId]);
 
-  // Demo build: frame the whole bay. The game area is much wider than it is tall, so the
-  // limit is the room's height (wall at y3 down to the open front at y12) — zooming to fit
-  // the width instead crops the bed and the monitor above it out of shot.
+  // Demo build: fit the bay to whatever the frame happens to be. A fixed zoom only looks
+  // right at one window size — too tight and the bed and monitor are cropped, too loose and
+  // the room sits in a field of empty floor.
   useEffect(() => {
-    if (!DEMO_MODE || !viewportRef.current) return;
+    if (!DEMO_MODE || !viewportRef.current || !props.width || !props.height) return;
+    const { minX, maxX, minY, maxY } = BAY_3_FRAME;
+    const roomW = (maxX - minX + 1) * tileDim;
+    const roomH = (maxY - minY + 1) * tileDim;
     viewportRef.current.animate({
-      position: new PIXI.Point(9 * tileDim, 7.5 * tileDim),
-      scale: 1.5,
+      position: new PIXI.Point(
+        ((minX + maxX + 1) / 2) * tileDim,
+        ((minY + maxY + 1) / 2) * tileDim,
+      ),
+      scale: Math.min(props.width / roomW, props.height / roomH),
       time: 600,
     });
-  }, []);
+  }, [props.width, props.height]);
 
   return (
     <PixiViewport

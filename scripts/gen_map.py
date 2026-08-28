@@ -56,6 +56,11 @@ for x in range(W):
         elif n == 8:
             floor[x][y] = T['floor_scuff']
 
+# Ambient occlusion where the back wall meets the floor. Without it the wall looks like a
+# sticker laid on the floor rather than something standing up from it.
+for x in range(X0, X1 + 1):
+    floor[x][Y0] = T['floor_ao']
+
 # Layer 1: walkable decor drawn under the characters — the bed, so Ray lies on it.
 decor = grid(EMPTY)
 BED_X, BED_Y = 8, 5

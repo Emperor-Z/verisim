@@ -440,6 +440,27 @@ def contact_shadow(p):
     return cells
 
 
+def key_light(p, skip):
+    """
+    Light the upper-left of the silhouette and shade the lower-right, matching the single
+    top-left light the tileset props are drawn to. Without it the characters read as flat
+    stickers next to furniture that has volume.
+    """
+    solid = {k for k in p.d if k not in skip}
+    lit, shaded = [], []
+    for (x, y) in solid:
+        if p.d[(x, y)] == P['outline']:
+            continue
+        if (x, y - 1) not in solid or (x - 1, y) not in solid:
+            lit.append((x, y))
+        elif (x, y + 1) not in solid or (x + 1, y) not in solid:
+            shaded.append((x, y))
+    for (x, y), col, a in [(c, (255, 255, 255), 0.22) for c in lit] + \
+                          [(c, (40, 48, 52), 0.20) for c in shaded]:
+        base = p.d[(x, y)][:3]
+        p.set(x, y, tuple(round(b + (c - b) * a) for b, c in zip(base, col)))
+
+
 def build_frame(spec, direction, frame):
     lift_l, lift_r, swing = GAIT[frame]
     p = Px()
@@ -458,6 +479,7 @@ def build_frame(spec, direction, frame):
     draw_accessory(p, spec['accessory'], direction, spec['build'])
 
     p.outline_alpha(P['outline'], skip=shadow)
+    key_light(p, shadow)
     return p.to_image()
 
 

@@ -5,7 +5,7 @@
   "bed_hr": 17,
   "bed_ml": 18,
   "bed_mr": 19,
-  "blank": 35,
+  "blank": 36,
   "cabinet": 22,
   "ceiling_light": 15,
   "chair": 26,
@@ -17,6 +17,7 @@
   "door_l": 12,
   "door_r": 13,
   "floor_a": 0,
+  "floor_ao": 33,
   "floor_b": 1,
   "floor_c": 2,
   "floor_scuff": 3,
@@ -31,8 +32,8 @@
   "trolley_bot": 29,
   "trolley_top": 28,
   "wall_lower": 5,
-  "wall_side_l": 33,
-  "wall_side_r": 34,
+  "wall_side_l": 34,
+  "wall_side_r": 35,
   "wall_upper": 4,
   "waste": 32
 }
