@@ -14,6 +14,8 @@ import { DebugPath } from './DebugPath.tsx';
 import { PositionIndicator } from './PositionIndicator.tsx';
 import { SHOW_DEBUG_UI } from './Game.tsx';
 import { ServerGame } from '../hooks/serverGame.ts';
+import { SpeechLayer } from './SpeechLayer.tsx';
+import { DEMO_MODE } from '../demo/useBayScript.ts';
 
 export const PixiGame = (props: {
   worldId: Id<'worlds'>;
@@ -23,6 +25,8 @@ export const PixiGame = (props: {
   width: number;
   height: number;
   setSelectedElement: SelectElement;
+  /** playerId -> line currently being spoken, drawn above the character. */
+  speech?: Map<string, string>;
 }) => {
   // PIXI setup.
   const pixiApp = useApp();
@@ -100,6 +104,18 @@ export const PixiGame = (props: {
     viewportRef.current.moveCenter(new PIXI.Point(10 * tileDim, 10 * tileDim));
   }, [humanPlayerId]);
 
+  // Demo build: frame the whole bay. The game area is much wider than it is tall, so the
+  // limit is the room's height (wall at y3 down to the open front at y12) — zooming to fit
+  // the width instead crops the bed and the monitor above it out of shot.
+  useEffect(() => {
+    if (!DEMO_MODE || !viewportRef.current) return;
+    viewportRef.current.animate({
+      position: new PIXI.Point(9 * tileDim, 7.5 * tileDim),
+      scale: 1.5,
+      time: 600,
+    });
+  }, []);
+
   return (
     <PixiViewport
       app={pixiApp}
@@ -132,6 +148,12 @@ export const PixiGame = (props: {
           historicalTime={props.historicalTime}
         />
       ))}
+      {/* Drawn last so bubbles sit above every sprite, not just the ones before them. */}
+      <SpeechLayer
+        game={props.game}
+        speech={props.speech ?? new Map()}
+        historicalTime={props.historicalTime}
+      />
     </PixiViewport>
   );
 };

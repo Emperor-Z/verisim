@@ -96,7 +96,13 @@ export function TestMenu({
                 title={enabled ? '' : 'Not consented yet'}
               >
                 <span>{item.label}</span>
-                {!enabled && <span aria-hidden>🔒</span>}
+                {/* Word rather than a lock glyph: emoji render in the host OS's colour
+                    emoji font, which sits badly against the pixel-art UI. */}
+                {!enabled && (
+                  <span className="uppercase text-[10px] tracking-wide text-white/50">
+                    locked
+                  </span>
+                )}
               </button>
             </li>
           );

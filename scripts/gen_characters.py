@@ -93,21 +93,24 @@ class Px:
         for (x, y), c in moved.items():
             self.set(x, y, c)
 
-    def outline_alpha(self, col):
+    def outline_alpha(self, col, skip=()):
         """1px dark keyline around the silhouette, so figures read against the floor."""
         edge = set()
         for (x, y) in self.d:
+            if (x, y) in skip:
+                continue
             for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
                 if (x + dx, y + dy) not in self.d:
                     edge.add((x + dx, y + dy))
         for (x, y) in edge:
-            self.set(x, y, col)
+            if (x, y) not in skip:
+                self.set(x, y, col)
 
     def to_image(self):
         img = Image.new('RGBA', (W, H), (0, 0, 0, 0))
         for (x, y), c in self.d.items():
             if 0 <= x < W and 0 <= y < H:
-                img.putpixel((x, y), c + (255,))
+                img.putpixel((x, y), c if len(c) == 4 else c + (255,))
         return img
 
 
@@ -418,9 +421,29 @@ ORDER = ['ray', 'kelly', 'sam', 'clinician']
 GAIT = [(0, 0, 0), (1, 0, 1), (0, 1, -1)]
 
 
+def contact_shadow(p):
+    """
+    Soft ellipse under the feet.
+
+    Without it the figures read as pasted onto the floor rather than standing on it —
+    the single clearest difference between these and finished game sprites. Returns the
+    shadow's coordinates so the silhouette keyline can skip them.
+    """
+    cells = set()
+    for dx in range(-7, 8):
+        for dy in range(-2, 3):
+            if (dx / 7.0) ** 2 + (dy / 2.2) ** 2 <= 1.0:
+                x, y = CX + dx, FOOT_Y + 1 + dy
+                edge = (dx / 7.0) ** 2 + (dy / 2.2) ** 2 > 0.55
+                p.set(x, y, (34, 32, 52, 40 if edge else 70))
+                cells.add((x, y))
+    return cells
+
+
 def build_frame(spec, direction, frame):
     lift_l, lift_r, swing = GAIT[frame]
     p = Px()
+    shadow = contact_shadow(p)
 
     draw_legs(p, direction, spec['trouser'], spec['trouser_d'], spec['shoe'],
               lift_l, lift_r)
@@ -434,7 +457,7 @@ def build_frame(spec, direction, frame):
     draw_face(p, direction, spec['skin_s'], brow=spec.get('brow', False))
     draw_accessory(p, spec['accessory'], direction, spec['build'])
 
-    p.outline_alpha(P['outline'])
+    p.outline_alpha(P['outline'], skip=shadow)
     return p.to_image()
 
 

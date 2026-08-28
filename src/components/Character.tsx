@@ -1,6 +1,6 @@
 import { BaseTexture, ISpritesheetData, Spritesheet } from 'pixi.js';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { AnimatedSprite, Container, Graphics, Text } from '@pixi/react';
+import { AnimatedSprite, Container, Graphics } from '@pixi/react';
 import * as PIXI from 'pixi.js';
 
 export const Character = ({
@@ -12,7 +12,6 @@ export const Character = ({
   isMoving = false,
   isThinking = false,
   isSpeaking = false,
-  emoji = '',
   isViewer = false,
   speed = 0.1,
   onClick,
@@ -26,11 +25,10 @@ export const Character = ({
   y: number;
   orientation: number;
   isMoving?: boolean;
-  // Shows a thought bubble if true.
+  // Draws a small 'thinking' badge above the character.
   isThinking?: boolean;
-  // Shows a speech bubble if true.
+  // Draws a small 'talking' badge above the character.
   isSpeaking?: boolean;
-  emoji?: string;
   // Highlights the player.
   isViewer?: boolean;
   // The speed of the animation. Can be tuned depending on the side and speed of the NPC.
@@ -85,14 +83,8 @@ export const Character = ({
 
   return (
     <Container x={x} y={y} interactive={true} pointerdown={onClick} cursor="pointer">
-      {isThinking && (
-        // TODO: We'll eventually have separate assets for thinking and speech animations.
-        <Text x={-20} y={-10} scale={{ x: -0.8, y: 0.8 }} text={'💭'} anchor={{ x: 0.5, y: 0.5 }} />
-      )}
-      {isSpeaking && (
-        // TODO: We'll eventually have separate assets for thinking and speech animations.
-        <Text x={18} y={-10} scale={0.8} text={'💬'} anchor={{ x: 0.5, y: 0.5 }} />
-      )}
+      {isThinking && <StatusBadge x={-16} filled={false} />}
+      {isSpeaking && <StatusBadge x={14} filled={true} />}
       {isViewer && <ViewerIndicator />}
       <AnimatedSprite
         ref={ref}
@@ -101,12 +93,34 @@ export const Character = ({
         animationSpeed={speed}
         anchor={{ x: 0.5, y: 0.5 }}
       />
-      {emoji && (
-        <Text x={0} y={-24} scale={{ x: -0.8, y: 0.8 }} text={emoji} anchor={{ x: 0.5, y: 0.5 }} />
-      )}
     </Container>
   );
 };
+
+/**
+ * Thinking / talking indicator.
+ *
+ * Drawn rather than set as an emoji glyph: the inherited '💭' and '💬' rendered in the
+ * host OS's emoji font, so a full-colour rounded cartoon sat on top of 32px pixel art in a
+ * clinical bay. Same information, drawn in the same idiom as everything else on the map.
+ */
+function StatusBadge({ x, filled }: { x: number; filled: boolean }) {
+  const draw = useCallback(
+    (g: PIXI.Graphics) => {
+      g.clear();
+      g.lineStyle(1, 0x222034, 1, 0);
+      g.beginFill(0xfdfdf6);
+      g.drawRoundedRect(x - 7, -22, 14, 10, 3);
+      g.endFill();
+      g.lineStyle(0);
+      g.beginFill(0x222034, filled ? 1 : 0.45);
+      for (const dx of [-4, 0, 4]) g.drawRect(x + dx - 1, -18, 2, 2);
+      g.endFill();
+    },
+    [x, filled],
+  );
+  return <Graphics draw={draw} />;
+}
 
 function ViewerIndicator() {
   const draw = useCallback((g: PIXI.Graphics) => {

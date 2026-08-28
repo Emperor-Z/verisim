@@ -11,6 +11,9 @@ import { useHistoricalTime } from '../hooks/useHistoricalTime.ts';
 import { DebugTimeManager } from './DebugTimeManager.tsx';
 import { GameId } from '../../convex/aiTown/ids.ts';
 import { useServerGame } from '../hooks/serverGame.ts';
+import { BayTranscript } from './BayTranscript.tsx';
+import { useBayScript, DEMO_MODE } from '../demo/useBayScript.ts';
+import { mapSpeakersToPlayers } from '../demo/speakerMapping.ts';
 
 export const SHOW_DEBUG_UI = !!import.meta.env.VITE_SHOW_DEBUG_UI;
 
@@ -36,6 +39,10 @@ export default function Game() {
 
   const scrollViewRef = useRef<HTMLDivElement>(null);
 
+  // Demo build: dialogue comes from the scripted Bay 3 consultation rather than the live
+  // agent path. No-ops entirely when VITE_DEMO_MODE is unset.
+  const bayScript = useBayScript(DEMO_MODE);
+
   if (!worldId || !engineId || !game) {
     return null;
   }
@@ -59,6 +66,7 @@ https://github.com/michalochman/react-pixi-fiber/issues/145#issuecomment-5315492
                     height={height}
                     historicalTime={historicalTime}
                     setSelectedElement={setSelectedElement}
+                    speech={mapSpeakersToPlayers(game, bayScript.speaking)}
                   />
                 </ConvexProvider>
               </Stage>
@@ -70,14 +78,18 @@ https://github.com/michalochman/react-pixi-fiber/issues/145#issuecomment-5315492
           className="flex flex-col overflow-y-auto shrink-0 px-4 py-6 sm:px-6 lg:w-96 xl:pr-6 border-t-8 sm:border-t-0 sm:border-l-8 border-brown-900  bg-brown-800 text-brown-100"
           ref={scrollViewRef}
         >
-          <PlayerDetails
-            worldId={worldId}
-            engineId={engineId}
-            game={game}
-            playerId={selectedElement?.id}
-            setSelectedElement={setSelectedElement}
-            scrollViewRef={scrollViewRef}
-          />
+          {DEMO_MODE ? (
+            <BayTranscript lines={bayScript.revealed} />
+          ) : (
+            <PlayerDetails
+              worldId={worldId}
+              engineId={engineId}
+              game={game}
+              playerId={selectedElement?.id}
+              setSelectedElement={setSelectedElement}
+              scrollViewRef={scrollViewRef}
+            />
+          )}
         </div>
       </div>
     </>
