@@ -54,6 +54,11 @@ C = {
     'skirt':      (122, 132, 130),
     'skirt_hi':   (146, 156, 153),
 
+    'chair_hi':   (108, 140, 186),
+    'chair':      (74, 104, 152),
+    'chair_lo':   (52, 76, 118),
+    'chair_dk':   (36, 54, 88),
+
     # Cubicle curtain
     'curt_hi':    (108, 214, 216),
     'curt':       (48, 176, 176),
@@ -599,16 +604,16 @@ def iv_stand(top=True):
 
 
 def cabinet():
-    """Bedside locker: a lit top surface over two drawers, so it reads as having height."""
+    """Bedside locker: a foreshortened top surface over a taller two-drawer front."""
     t = Tile()
-    t.rect(9, 10, 23, 14, (214, 178, 138))    # top surface, catching the light
-    t.hline(9, 23, 10, (232, 198, 160))
-    t.hline(9, 23, 14, C['wood_lo'])
-    t.rect(9, 15, 23, 27, C['wood'])          # front
-    t.vline(9, 15, 27, (206, 168, 128))
-    t.vline(23, 15, 27, C['wood_lo'])
-    t.hline(9, 23, 27, (120, 88, 62))
-    for y in (16, 22):                        # drawers
+    t.rect(9, 7, 23, 12, (214, 178, 138))     # top surface, catching the light
+    t.hline(9, 23, 7, (232, 198, 160))
+    t.hline(9, 23, 12, C['wood_lo'])
+    t.rect(9, 13, 23, 29, C['wood'])          # front, deeper now for real height
+    t.vline(9, 13, 29, (206, 168, 128))
+    t.vline(23, 13, 29, C['wood_lo'])
+    t.hline(9, 23, 29, (120, 88, 62))
+    for y in (15, 22):                        # drawers
         t.hline(10, 22, y, (206, 168, 128))
         t.hline(10, 22, y + 4, C['wood_lo'])
         t.hline(14, 18, y + 2, (140, 104, 74))
@@ -616,13 +621,32 @@ def cabinet():
 
 
 def chair():
-    """Visitor chair, seen from above-front like everything else."""
+    """
+    Visitor chair, drawn in forced perspective rather than flat top-down: a tall
+    backrest (the far side, away from the viewer) rising to a rounded top, a
+    foreshortened seat cushion just below it, and front legs with real visible length
+    reaching the floor — the standard construction top-down RPG furniture uses so a
+    chair reads as something with height, not a two-tone icon.
+    """
     t = Tile()
-    t.rect(8, 6, 23, 12, C['blanket'])            # back
-    t.hline(8, 23, 6, C['blanket_lo'])
-    t.rect(7, 13, 24, 22, C['blanket_lo'])        # seat
-    t.rect(9, 23, 11, 28, C['metal_lo'])          # legs
-    t.rect(20, 23, 22, 28, C['metal_lo'])
+    # Backrest: tall, rounded top, a tufting seam down the middle for a touch of detail.
+    t.rect(9, 2, 22, 15, C['chair'])
+    t.rect(10, 1, 21, 2, C['chair'])
+    t.hline(10, 21, 2, mix(C['chair'], C['hilite_tint'], 0.3))
+    t.vline(9, 3, 15, mix(C['chair'], C['hilite_tint'], 0.2))
+    t.vline(22, 3, 15, C['chair_dk'])
+    t.vline(15, 4, 14, C['chair_lo'])
+    t.hline(9, 22, 15, C['chair_lo'])
+    # Seat: compressed height, a lit top surface since we're looking down onto it.
+    t.rect(7, 16, 24, 21, C['chair_hi'])
+    t.hline(7, 24, 16, mix(C['chair_hi'], C['hilite_tint'], 0.25))
+    t.hline(7, 24, 21, C['chair_lo'])
+    t.vline(24, 16, 21, C['chair_lo'])
+    # Front legs, tapering slightly, with real length so the chair has visible height.
+    for x0 in (8, 19):
+        t.rect(x0, 22, x0 + 2, 29, C['metal_lo'])
+        t.vline(x0, 22, 29, C['metal_hi'])
+        t.vline(x0 + 2, 22, 29, C['metal_dk'])
     return t
 
 
@@ -659,29 +683,60 @@ def trolley():
 
 
 def sink():
+    """
+    Hand-wash basin, forced perspective: the tap rising at the back, the basin bowl
+    foreshortened just below it, and a visible pedestal/splashback front face rather
+    than a flat rimmed rectangle floating with no sense of depth.
+    """
     t = Tile()
-    t.rect(6, 10, 25, 26, C['plastic'])
-    t.frame(6, 10, 25, 26, C['line_soft'])
-    t.rect(9, 14, 22, 23, (204, 214, 218))
-    t.rect(15, 6, 16, 12, C['metal'])
-    t.hline(15, 19, 6, C['metal'])
+    # Tap, rising from the back of the unit.
+    t.vline(15, 2, 8, C['metal'])
+    t.vline(16, 2, 8, C['metal_lo'])
+    t.hline(13, 18, 2, C['metal_hi'])
+    t.vline(13, 2, 5, C['metal'])
+    t.vline(18, 2, 5, C['metal'])
+    # Basin: a lit rim, then the bowl itself, foreshortened (compressed) as we're
+    # looking down and slightly forward into it.
+    t.rect(6, 9, 25, 18, C['plastic'])
+    t.hline(6, 25, 9, mix(C['plastic'], C['hilite_tint'], 0.35))
+    t.frame(6, 9, 25, 18, C['line_soft'])
+    t.rect(9, 11, 22, 16, (204, 214, 218))
+    t.hline(9, 22, 16, C['line_soft'])
+    # Splashback/pedestal front face, giving the unit real height off the floor.
+    t.rect(6, 19, 25, 27, C['plastic'])
+    t.hline(6, 25, 19, C['line_soft'])
+    t.vline(6, 19, 27, C['line_soft'])
+    t.vline(25, 19, 27, C['line_soft'])
+    t.rect(11, 20, 20, 26, mix(C['plastic'], C['line_soft'], 0.3))
     return t
 
 
 def sharps_bin():
+    """Sharps bin: a domed yellow lid (the part we look down onto) over a taller body."""
     t = Tile()
-    t.rect(11, 15, 21, 27, (232, 186, 58))
-    t.frame(11, 15, 21, 27, (188, 146, 40))
-    t.rect(11, 12, 21, 15, (208, 60, 52))
-    t.hline(13, 19, 19, (188, 146, 40))
+    t.rect(10, 17, 22, 28, (232, 186, 58))         # body, taller than it was
+    t.hline(10, 22, 17, mix((232, 186, 58), C['hilite_tint'], 0.3))
+    t.hline(10, 22, 28, (188, 146, 40))
+    t.vline(10, 17, 28, mix((232, 186, 58), C['hilite_tint'], 0.15))
+    t.vline(22, 17, 28, (188, 146, 40))
+    t.rect(10, 12, 22, 17, (208, 60, 52))          # lid — the domed top surface
+    t.hline(10, 22, 12, mix((208, 60, 52), C['hilite_tint'], 0.3))
+    t.hline(13, 19, 20, (188, 146, 40))
     return t
 
 
 def waste_bin():
+    """Pedal bin: a lit lid (looking down onto it) over a taller, shaded body."""
     t = Tile()
-    t.rect(10, 12, 21, 28, C['plastic'])
-    t.frame(10, 12, 21, 28, C['line_soft'])
-    t.rect(9, 9, 22, 12, C['metal'])
+    t.rect(10, 15, 21, 29, C['plastic'])
+    t.hline(10, 21, 15, mix(C['plastic'], C['hilite_tint'], 0.25))
+    t.hline(10, 21, 29, C['line_soft'])
+    t.vline(10, 15, 29, mix(C['plastic'], C['hilite_tint'], 0.1))
+    t.vline(21, 15, 29, C['line_soft'])
+    t.rect(8, 10, 23, 15, C['metal'])              # lid, wider than the body
+    t.hline(8, 23, 10, C['metal_hi'])
+    t.hline(8, 23, 15, C['metal_lo'])
+    t.rect(14, 8, 17, 10, C['metal_lo'])           # pedal-lid handle
     return t
 
 
