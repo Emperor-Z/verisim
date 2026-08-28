@@ -207,8 +207,8 @@ function Composer({
         </button>
       </div>
       <p className="mt-1 h-4 text-xs text-brown-300">
-        {waiting && !claimed && 'Your turn — press Enter to say it, or type your own.'}
-        {waiting && claimed && 'Press Enter to say it.'}
+        {waiting && !claimed && "Your turn — type your own and press Enter to send."}
+        {waiting && claimed && 'Type your own and press Enter to send.'}
       </p>
     </div>
   );
