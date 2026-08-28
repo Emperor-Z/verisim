@@ -95,6 +95,12 @@ export const PixiGame = (props: {
   const { width, height, tileDim } = props.game.worldMap;
   const players = [...props.game.world.players.values()];
   const demoTypingPlayerId = mapSpeakerToPlayer(props.game, props.demoTypingSpeaker ?? null);
+  // Ray is confined to the bed for the whole scenario, and the tile at his position is now
+  // the occupied-bed art with a reclining figure baked in (scripts/gen_tileset.py) rather
+  // than the plain bed — rendering his normal standing walk-cycle sprite on top of that
+  // read as a patient standing up on his own mattress. Hidden here, not removed from the
+  // world: he still occupies the tile, has a conversation, speaks — just isn't drawn twice.
+  const demoBedriddenPlayerId = DEMO_MODE ? mapSpeakerToPlayer(props.game, 'Ray') : undefined;
 
   // Zoom on the user’s avatar when it is created.
   // Skipped in the demo build, which frames the whole bay instead — otherwise this fires
@@ -157,17 +163,19 @@ export const PixiGame = (props: {
           ),
       )}
       {lastDestination && <PositionIndicator destination={lastDestination} tileDim={tileDim} />}
-      {players.map((p) => (
-        <Player
-          key={`player-${p.id}`}
-          game={props.game}
-          player={p}
-          isViewer={p.id === humanPlayerId}
-          onClick={props.setSelectedElement}
-          historicalTime={props.historicalTime}
-          demoTyping={p.id === demoTypingPlayerId}
-        />
-      ))}
+      {players
+        .filter((p) => p.id !== demoBedriddenPlayerId)
+        .map((p) => (
+          <Player
+            key={`player-${p.id}`}
+            game={props.game}
+            player={p}
+            isViewer={p.id === humanPlayerId}
+            onClick={props.setSelectedElement}
+            historicalTime={props.historicalTime}
+            demoTyping={p.id === demoTypingPlayerId}
+          />
+        ))}
       {/* Drawn last so bubbles sit above every sprite, not just the ones before them. */}
       <SpeechLayer
         game={props.game}

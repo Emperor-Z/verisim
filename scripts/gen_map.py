@@ -72,8 +72,11 @@ for x in range(X0, X1 + 1):
 # Layer 1: walkable decor drawn under the characters — the bed, so Ray lies on it.
 decor = grid(EMPTY)
 BED_X, BED_Y = 8, 5
-put(decor, BED_X, BED_Y, T['bed_head'])
-put(decor, BED_X, BED_Y + 1, T['bed_foot'])
+# Occupied variant — Ray, not a standing character sprite, is placed here (see
+# BackWall.tsx's sibling suppression in PixiGame.tsx). The neighbouring bay's bed
+# (BAY2_X, below) stays the plain unoccupied tiles — nobody's demoed there.
+put(decor, BED_X, BED_Y, T['bed_head_occ'])
+put(decor, BED_X, BED_Y + 1, T['bed_foot_occ'])
 
 # ---------------------------------------------------------------- objects
 # Layer 0: structure. Anything here blocks movement.

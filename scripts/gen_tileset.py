@@ -26,6 +26,11 @@ COLS, ROWS = 8, 5
 
 # ---------------------------------------------------------------- palette
 C = {
+    'patient_skin':    (238, 195, 154),
+    'patient_skin_lo': (217, 160, 102),
+    'patient_hair':    (167, 183, 191),
+    'patient_hair_lo': (132, 126, 135),
+
     # Vinyl flooring — pale, desaturated, slightly green. Deliberately low contrast:
     # the floor is the largest surface on screen and must sit behind the characters.
     'floor':      (214, 226, 236),
@@ -370,8 +375,66 @@ def _bed_full():
     return im
 
 
-def _bed_shadowed():
+def _bed_occupied():
+    """
+    Ray, lying in the bed. The plain bed art alone left the demo positioning a full
+    standing walk-cycle sprite directly on the mattress, which read as a patient standing
+    on top of his own bed rather than lying in it. This bakes a reclining figure into the
+    bed graphic itself — head and hair on the pillow, a body-shaped rise under the
+    blanket, hands resting on top of it — and Ray's normal Character sprite is hidden
+    while he's on this tile (src/components/PixiGame.tsx) so only this appears.
+    """
     im = _bed_full()
+    px = im.load()
+
+    def rect(x0, y0, x1, y1, col):
+        for y in range(max(0, y0), min(BED_H, y1 + 1)):
+            for x in range(max(0, x0), min(BED_W, x1 + 1)):
+                px[x, y] = col + (255,)
+
+    def hline(x0, x1, y, col):
+        rect(x0, y, x1, y, col)
+
+    def oval(cx, cy, rx, ry, col):
+        for y in range(cy - ry, cy + ry + 1):
+            for x in range(cx - rx, cx + rx + 1):
+                if ((x - cx) / max(rx, 0.5)) ** 2 + ((y - cy) / max(ry, 0.5)) ** 2 <= 1.0:
+                    px[x, y] = col + (255,)
+
+    L, R = 6, BED_W - 7
+    HEAD = 5
+    cx = (L + R) // 2
+
+    # Head, resting on the pillow, tipped very slightly so he reads as looking toward
+    # whoever is at the bedside rather than straight up at the ceiling.
+    head_cy = HEAD + 8
+    oval(cx + 1, head_cy, 6, 5, C['patient_hair'])
+    oval(cx + 1, head_cy + 1, 5, 4, C['patient_skin'])
+    # Closed eyes: short horizontal dashes, not dots — a dot at this scale reads as a
+    # nostril rather than a shut eye.
+    hline(cx - 3, cx - 2, head_cy + 1, C['line'])
+    hline(cx + 3, cx + 4, head_cy + 1, C['line'])
+
+    # Body: a soft rise under the blanket rather than the flat rectangle the plain bed
+    # has, tapering from shoulders to feet, with a highlight ridge down the centre.
+    top = HEAD + 19
+    for i, y in enumerate(range(top, top + 34)):
+        t = i / 34
+        w = round(9 - 3 * t)
+        rect(cx - w, y, cx + w, y, mix(C['blanket'], C['blanket_hi'], 0.25))
+        px[cx, y] = mix(C['blanket_hi'], (255, 255, 255), 0.12) + (255,)
+    # Feet, tenting the blanket at the very end.
+    oval(cx - 3, top + 33, 2, 3, C['blanket_lo'])
+    oval(cx + 3, top + 33, 2, 3, C['blanket_lo'])
+
+    # Hands resting on top of the covers, near where the turned-back sheet ends.
+    oval(cx - 7, top + 3, 2, 2, C['patient_skin'])
+    oval(cx + 8, top + 3, 2, 2, C['patient_skin'])
+    return im
+
+
+def _bed_shadowed(source=_bed_full):
+    im = source()
     out = Image.new('RGBA', (BED_W, BED_H), (0, 0, 0, 0))
     for y in range(BED_H):
         for x in range(BED_W):
@@ -382,12 +445,14 @@ def _bed_shadowed():
 
 
 _BED = _bed_shadowed()
+_BED_OCCUPIED = _bed_shadowed(_bed_occupied)
 
 
-def bed_piece(row):
+def bed_piece(row, occupied=False):
     """row: 0=head, 1=foot."""
     t = Tile()
-    t.img.paste(_BED.crop((0, row * TD, TD, row * TD + TD)), (0, 0))
+    source = _BED_OCCUPIED if occupied else _BED
+    t.img.paste(source.crop((0, row * TD, TD, row * TD + TD)), (0, 0))
     return t
 
 
@@ -650,6 +715,8 @@ TILES = [
 
     ('bed_head',      lambda: bed_piece(0)),
     ('bed_foot',      lambda: bed_piece(1)),
+    ('bed_head_occ',  lambda: bed_piece(0, occupied=True)),
+    ('bed_foot_occ',  lambda: bed_piece(1, occupied=True)),
     ('cabinet',       standing(cabinet)),
     ('monitor',       monitor_screen),
     ('monitor_arm',   monitor_arm),
