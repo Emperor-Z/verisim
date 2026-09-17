@@ -1,0 +1,59 @@
+[
+  {
+    "_creationTime": 1787434419831.331,
+    "_id": "m571etz1h83m9zx25715k6rywn8czjdp",
+    "detail": "Bloods",
+    "kind": "testDispatch",
+    "label": "bloods",
+    "permitted": false,
+    "playerId": "p:0",
+    "trustAfter": 10,
+    "trustBefore": 25,
+    "worldId": "m17fezy20sy4q035xt35wx48xd8czc5h"
+  },
+  {
+    "_creationTime": 1787434421828.5574,
+    "_id": "m579d3cbtz2qrmxpbz8aj2kj5n8cyqka",
+    "detail": "Ray, take your time — there's no rush at all.",
+    "kind": "utterance",
+    "label": "deescalation_lever",
+    "playerId": "p:0",
+    "trustAfter": 25,
+    "trustBefore": 10,
+    "worldId": "m17fezy20sy4q035xt35wx48xd8czc5h"
+  },
+  {
+    "_creationTime": 1787434423855.2812,
+    "_id": "m578yt9r7gd0dxvkhsj8sn6jad8cyys6",
+    "detail": "I can see this is really frightening for you.",
+    "kind": "utterance",
+    "label": "deescalation_lever",
+    "playerId": "p:0",
+    "trustAfter": 40,
+    "trustBefore": 25,
+    "worldId": "m17fezy20sy4q035xt35wx48xd8czc5h"
+  },
+  {
+    "_creationTime": 1787434425916.2031,
+    "_id": "m5732vvenkcx44e9r4pecfq4ws8cya25",
+    "detail": "I'd like to do an ECG because it shows me what your heart is doing right now.",
+    "kind": "utterance",
+    "label": "plain_explanation",
+    "playerId": "p:0",
+    "trustAfter": 50,
+    "trustBefore": 40,
+    "worldId": "m17fezy20sy4q035xt35wx48xd8czc5h"
+  },
+  {
+    "_creationTime": 1787434504845.7424,
+    "_id": "m57b67953h2hdemj0vkwwgvsyx8cyd25",
+    "detail": "Bloods (troponin, FBC)",
+    "kind": "testDispatch",
+    "label": "bloods",
+    "permitted": true,
+    "playerId": "p:0",
+    "trustAfter": 50,
+    "trustBefore": 50,
+    "worldId": "m17fezy20sy4q035xt35wx48xd8czc5h"
+  }
+]

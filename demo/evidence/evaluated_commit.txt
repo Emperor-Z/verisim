@@ -1,0 +1,17 @@
+Evaluated feature commit (consent-gate + Bay 3 confinement + UI fixes, the code the pack demonstrates):
+5aa476766bcc408dcbc5661c674a96588cf6ba68
+2026-08-22 — "Keep the message input visible without scrolling, and drop AI Town idle flavour"
+
+Builds on:
+4b03d4874136baccf7ce9b52592b793fded50d6a
+2026-08-22 — "Confine idle wander and clinician spawn to Bay 3"
+
+Built on top of the previously-evaluated commit:
+ca50f25a531b8449cc669202b22ecaca28d17948
+2026-08-11 02:42:43 +0100 — "Update docs for the A&E map swap and first live-backend validation"
+
+Repo HEAD at pack build time (includes one further commit of demo-only debug
+mutations used to stage this pack's screenshots/video — NOT part of evaluated
+behaviour, see ARCHITECTURE_AND_VALIDATION.md §6):
+d499d5742440b41d750e43d24f9a27635ebfaae0
+2026-08-22 22:36:09 +0100 — "Add demo-only debug mutations for staging screenshots/video"
