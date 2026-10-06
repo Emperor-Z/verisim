@@ -17,8 +17,6 @@ offline on local models via Ollama. See `docs/persona_cards.md` for the scenario
 > real clinical decisions. AI-generated content may be inaccurate; all clinical learning should be
 > validated with qualified educators.
 
-*Fork of [AI Town](https://github.com/a16z-infra/ai-town) (MIT licence, a16z-infra).*
-
 ---
 
 ## Demo
@@ -100,5 +98,15 @@ npm run dashboard      # opens the Convex dashboard
 
 ## License
 
-MIT - see [`LICENSE`](LICENSE). Fork of [AI Town](https://github.com/a16z-infra/ai-town) (MIT,
-a16z-infra); original AI Town code and assets remain under their original licence terms.
+MIT - see [`LICENSE`](LICENSE).
+
+## Credits
+
+VeriSim is built on the [AI Town](https://github.com/a16z-infra/ai-town) engine (MIT, a16z-infra),
+which provides the Convex game loop, agent/world simulation and PixiJS rendering (`convex/engine`,
+`convex/aiTown`, and the map/sprite assets). The clinical scenario, persona system, consent gate,
+event classifier and session orchestration (`convex/verisim`) are original to this project, and
+the frontend is adapted from AI Town's for the A&E bay setting. Original AI Town
+code and assets remain under their original licence terms; see the upstream
+[architecture doc](https://github.com/a16z-infra/ai-town/blob/main/ARCHITECTURE.md) for engine
+internals.
