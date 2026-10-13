@@ -1,4 +1,5 @@
 import { internalMutation } from '../_generated/server';
+import { BAY_MARKS, CLINICIAN_MARK } from './marks';
 
 /**
  * Demo-only: stand the cast where the scripted consultation assumes they are.
@@ -8,17 +9,9 @@ import { internalMutation } from '../_generated/server';
  * writes positions straight to the world doc, the same bypass testing.ts:forceJoinHuman
  * already uses, so staging a demo take does not depend on the engine running.
  *
- * Coordinates follow the layout in scripts/gen_map.py: the bed occupies x8, y5-6 and is
- * in a background layer, so standing on it is legal and draws Ray on top of it.
+ * The engine now holds agents on these marks itself (aiTown/agent.ts); this is for when the
+ * engine isn't running at all.
  */
-const MARKS: Record<string, { x: number; y: number; dx: number; dy: number }> = {
-  Ray: { x: 8, y: 5, dx: 0, dy: 1 },        // propped up in the bed, facing out
-  Kelly: { x: 10, y: 7, dx: 0, dy: -1 },    // just off the bedside chair, facing her father
-  Sam: { x: 9, y: 9, dx: 0, dy: -1 },       // at the foot of the bed
-};
-
-const CLINICIAN_MARK = { x: 7, y: 8, dx: 0, dy: -1 };
-
 export const placeDemoCast = internalMutation({
   args: {},
   handler: async (ctx) => {
@@ -39,7 +32,7 @@ export const placeDemoCast = internalMutation({
     const placed: Record<string, string> = {};
     const players = world.players.map((p: any) => {
       const name = nameById.get(p.id) ?? '';
-      const mark = MARKS[name] ?? (p.human ? CLINICIAN_MARK : undefined);
+      const mark = BAY_MARKS[name] ?? (p.human ? CLINICIAN_MARK : undefined);
       if (!mark) return p;
       placed[name || 'clinician'] = `${mark.x},${mark.y}`;
       return {

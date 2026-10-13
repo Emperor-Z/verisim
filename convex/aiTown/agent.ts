@@ -22,6 +22,7 @@ import { distance } from '../util/geometry';
 import { internal } from '../_generated/api';
 import { movePlayer } from './movement';
 import { insertInput } from './insertInput';
+import { BAY_MARKS } from '../verisim/marks';
 
 export class Agent {
   id: GameId<'agents'>;
@@ -53,6 +54,21 @@ export class Agent {
     const player = game.world.players.get(this.playerId);
     if (!player) {
       throw new Error(`Invalid player ID ${this.playerId}`);
+    }
+    // VeriSim: Bay 3's dialogue runs outside the engine (convex/verisim/bay.ts), so the
+    // inherited wander / invite / two-party-chat loop has nothing to do but pull the cast out
+    // of the scene and queue model calls nobody reads. The cast holds its marks instead.
+    const mark = BAY_MARKS[game.playerDescriptions.get(this.playerId)?.name ?? ''];
+    if (mark) {
+      const { x, y, dx, dy } = mark;
+      if (player.position.x !== x || player.position.y !== y || player.pathfinding) {
+        player.position = { x, y };
+        player.facing = { dx, dy };
+        player.speed = 0;
+        delete player.pathfinding;
+      }
+      delete this.inProgressOperation;
+      return;
     }
     if (this.inProgressOperation) {
       if (now < this.inProgressOperation.started + ACTION_TIMEOUT) {
