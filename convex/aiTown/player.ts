@@ -15,6 +15,7 @@ import { stopPlayer, findRoute, blocked, movePlayer } from './movement';
 import { inputHandler } from './inputHandler';
 import { characters } from '../../data/characters';
 import { PlayerDescription } from './playerDescription';
+import { CLINICIAN_MARK } from '../verisim/marks';
 
 const pathfinding = v.object({
   destination: point,
@@ -188,10 +189,13 @@ export class Player {
       }
     }
     // VeriSim Scenario 01 is a single consultation room (Bay 3, data/aeBay.js floor tiles
-    // x:5-13, y:4-12) — the clinician should join inside it, not at a random point on the
+    // x:6-11, y:5-10) — the clinician should join inside it, not at a random point on the
     // inherited AI Town map (see ARCHITECTURE_AND_VALIDATION.md §4.4).
-    let position;
-    for (let attempt = 0; attempt < 10; attempt++) {
+    // On the clinician's mark if it's free, otherwise anywhere free in the bay.
+    let position = blocked(game, now, CLINICIAN_MARK)
+      ? undefined
+      : { x: CLINICIAN_MARK.x, y: CLINICIAN_MARK.y };
+    for (let attempt = 0; !position && attempt < 10; attempt++) {
       const candidate = {
         x: 6 + Math.floor(Math.random() * 6),
         y: 5 + Math.floor(Math.random() * 6),
@@ -211,7 +215,10 @@ export class Player {
       { dx: 0, dy: 1 },
       { dx: 0, dy: -1 },
     ];
-    const facing = facingOptions[Math.floor(Math.random() * facingOptions.length)];
+    const facing =
+      position.x === CLINICIAN_MARK.x && position.y === CLINICIAN_MARK.y
+        ? { dx: CLINICIAN_MARK.dx, dy: CLINICIAN_MARK.dy }
+        : facingOptions[Math.floor(Math.random() * facingOptions.length)];
     if (!characters.find((c) => c.name === character)) {
       throw new Error(`Invalid character: ${character}`);
     }
