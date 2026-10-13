@@ -17,7 +17,7 @@ export const Player = ({
   player,
   onClick,
   historicalTime,
-  demoTyping = false,
+  typing = false,
 }: {
   game: ServerGame;
   isViewer: boolean;
@@ -25,8 +25,8 @@ export const Player = ({
 
   onClick: SelectElement;
   historicalTime?: number;
-  /** Demo build: this player is composing a line the script hasn't revealed yet. */
-  demoTyping?: boolean;
+  /** This player is composing a line for the bay that hasn't landed yet. */
+  typing?: boolean;
 }) => {
   const playerCharacter = game.playerDescriptions.get(player.id)?.character;
   if (!playerCharacter) {
@@ -52,7 +52,7 @@ export const Player = ({
     (c) => c.isTyping?.playerId === player.id,
   );
   const isThinking =
-    demoTyping ||
+    typing ||
     (!isSpeaking &&
       !![...game.world.agents.values()].find(
         (a) => a.playerId === player.id && !!a.inProgressOperation,

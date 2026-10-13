@@ -16,8 +16,8 @@ import { SHOW_DEBUG_UI } from './Game.tsx';
 import { ServerGame } from '../hooks/serverGame.ts';
 import { SpeechLayer } from './SpeechLayer.tsx';
 import { BackWall } from './BackWall.tsx';
-import { mapSpeakerToPlayer } from '../demo/speakerMapping.ts';
-import { DEMO_MODE } from '../demo/useBayScript.ts';
+import { mapSpeakerToPlayer } from '../bay/speakerMapping.ts';
+import type { BaySpeaker } from '../../convex/verisim/bayDirector.ts';
 
 // The bay as drawn by scripts/gen_map.py: back wall at y3 down to the open front, left
 // wall to cubicle curtain. Kept here rather than imported from the map data because it is
@@ -34,8 +34,8 @@ export const PixiGame = (props: {
   setSelectedElement: SelectElement;
   /** playerId -> line currently being spoken, drawn above the character. */
   speech?: Map<string, string>;
-  /** Demo build: who is composing their next line right now. */
-  demoTypingSpeaker?: import('../demo/bayScript.ts').Speaker | null;
+  /** Who in the bay is composing their next line right now. */
+  typingSpeaker?: BaySpeaker | null;
 }) => {
   // PIXI setup.
   const pixiApp = useApp();
@@ -94,39 +94,20 @@ export const PixiGame = (props: {
   };
   const { width, height, tileDim } = props.game.worldMap;
   const players = [...props.game.world.players.values()];
-  const demoTypingPlayerId = mapSpeakerToPlayer(props.game, props.demoTypingSpeaker ?? null);
+  const typingPlayerId = mapSpeakerToPlayer(props.game, props.typingSpeaker ?? null);
   // Ray is confined to the bed for the whole scenario, and the tile at his position is now
   // the occupied-bed art with a reclining figure baked in (scripts/gen_tileset.py) rather
   // than the plain bed — rendering his normal standing walk-cycle sprite on top of that
   // read as a patient standing up on his own mattress. Hidden here, not removed from the
-  // world: he still occupies the tile, has a conversation, speaks — just isn't drawn twice.
-  const demoBedriddenPlayerId = DEMO_MODE ? mapSpeakerToPlayer(props.game, 'Ray') : undefined;
+  // world: he still occupies the tile and speaks — just isn't drawn twice.
+  const bedriddenPlayerId = mapSpeakerToPlayer(props.game, 'Ray');
 
-  // Zoom on the user’s avatar when it is created.
-  // Skipped in the demo build, which frames the whole bay instead — otherwise this fires
-  // after the framing effect and snaps the camera onto the clinician.
-  useEffect(() => {
-    if (DEMO_MODE || !viewportRef.current || humanPlayerId === undefined) return;
-
-    const humanPlayer = props.game.world.players.get(humanPlayerId)!;
-    viewportRef.current.animate({
-      position: new PIXI.Point(humanPlayer.position.x * tileDim, humanPlayer.position.y * tileDim),
-      scale: 1.5,
-    });
-  }, [humanPlayerId]);
-
-  // Before anyone has joined, frame Bay 3 itself rather than the map's top-left corner — this is
-  // a single-room scenario, not a village the camera should default to a corner of.
-  useEffect(() => {
-    if (DEMO_MODE || !viewportRef.current || humanPlayerId !== undefined) return;
-    viewportRef.current.moveCenter(new PIXI.Point(10 * tileDim, 10 * tileDim));
-  }, [humanPlayerId]);
-
-  // Demo build: fit the bay to whatever the frame happens to be. A fixed zoom only looks
+  // Fit the bay to whatever the frame happens to be. It's a single-room scenario, so the
+  // camera frames the room rather than following the clinician. A fixed zoom only looks
   // right at one window size — too tight and the bed and monitor are cropped, too loose and
   // the room sits in a field of empty floor.
   useEffect(() => {
-    if (!DEMO_MODE || !viewportRef.current || !props.width || !props.height) return;
+    if (!viewportRef.current || !props.width || !props.height) return;
     const { minX, maxX, minY, maxY } = BAY_3_FRAME;
     const roomW = (maxX - minX + 1) * tileDim;
     const roomH = (maxY - minY + 1) * tileDim;
@@ -164,7 +145,7 @@ export const PixiGame = (props: {
       )}
       {lastDestination && <PositionIndicator destination={lastDestination} tileDim={tileDim} />}
       {players
-        .filter((p) => p.id !== demoBedriddenPlayerId)
+        .filter((p) => p.id !== bedriddenPlayerId)
         .map((p) => (
           <Player
             key={`player-${p.id}`}
@@ -173,7 +154,7 @@ export const PixiGame = (props: {
             isViewer={p.id === humanPlayerId}
             onClick={props.setSelectedElement}
             historicalTime={props.historicalTime}
-            demoTyping={p.id === demoTypingPlayerId}
+            typing={p.id === typingPlayerId}
           />
         ))}
       {/* Drawn last so bubbles sit above every sprite, not just the ones before them. */}
