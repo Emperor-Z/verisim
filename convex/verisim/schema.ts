@@ -36,4 +36,31 @@ export const verisimTables = {
     trustAfter: v.number(),
     permitted: v.optional(v.boolean()), // testDispatch only
   }).index('worldId', ['worldId', 'playerId']),
+
+  /**
+   * The Bay 3 transcript (bay.ts): everything said in the room, by everyone, in order. One
+   * conversation per world rather than AI Town's per-pair `messages`, because the scenario is
+   * four people in one bay and the engine can only stage two at a time.
+   */
+  verisimBayLines: defineTable({
+    worldId: v.id('worlds'),
+    speaker: v.union(
+      v.literal('Ray'),
+      v.literal('Kelly'),
+      v.literal('Sam'),
+      v.literal('You'),
+      v.literal('System'),
+    ),
+    text: v.string(),
+  }).index('worldId', ['worldId']),
+
+  /**
+   * One row per world: who is composing a line right now, and the clinician turn the room is
+   * answering. A reply generated for an older turn is dropped rather than posted late.
+   */
+  verisimBayStatus: defineTable({
+    worldId: v.id('worlds'),
+    turn: v.number(),
+    typing: v.optional(v.union(v.literal('Ray'), v.literal('Kelly'), v.literal('Sam'))),
+  }).index('worldId', ['worldId']),
 };

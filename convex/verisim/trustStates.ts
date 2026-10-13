@@ -19,7 +19,7 @@ import { testResultLine } from './testResults';
  * reads/writes the one row of TrustState per (worldId, playerId) and calls into that pure logic.
  */
 
-async function loadState(
+export async function loadState(
   db: DatabaseReader,
   worldId: Id<'worlds'>,
   playerId: GameId<'players'>,
@@ -33,7 +33,7 @@ async function loadState(
   return { trust, stage, deescalations, plainExplanations, refusals, selfDischarged };
 }
 
-async function logEvent(
+export async function logEvent(
   db: DatabaseWriter,
   worldId: Id<'worlds'>,
   playerId: GameId<'players'>,
@@ -49,7 +49,7 @@ async function logEvent(
   await db.insert('verisimSessionEvents', { worldId, playerId, ...event });
 }
 
-async function saveState(
+export async function saveState(
   db: DatabaseWriter,
   worldId: Id<'worlds'>,
   playerId: GameId<'players'>,
