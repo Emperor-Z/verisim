@@ -1,0 +1,180 @@
+#!/usr/bin/env python3
+"""
+Generate data/aeBay.js — the A&E Bay 3 map.
+
+The previous map tiled a single blue floor tile across three identical rectangles with a
+striped fill standing in for curtains, which read as a placeholder rather than a room.
+This composes one bay deliberately: a back wall carrying the monitor, oxygen outlet and
+gel dispenser, a trolley bed under the monitor, a cubicle curtain closing the bay off to
+one side, and the clutter a real bay has around its edges.
+
+Layout constraint: the walkable core x6-12, y5-11 must stay clear, because Bay 3's spawn
+and idle-wander bounds are hardcoded to it (convex/aiTown/agentOperations.ts,
+convex/aiTown/player.ts). Props are placed outside that box; the bed sits inside it but
+goes in a background layer, so it draws under the characters and Ray can lie on it.
+
+Run:  python3 scripts/gen_tileset.py && python3 scripts/gen_map.py
+"""
+
+import json
+
+W, H = 64, 48
+TD = 32
+EMPTY = -1
+
+T = json.load(open('data/tileIds.json'))
+
+# Room bounds. One tile is about a metre, matching the scale the characters and props are
+# drawn to, so a real resus bay is roughly five metres across rather than the eight the
+# first layout gave it. The camera sits on the middle of this.
+X0, X1 = 5, 19          # left wall .. cubicle curtain — 15 tiles, chosen so the room's
+                         # aspect ratio (~1.67:1) roughly matches the game viewport's, so the
+                         # camera fit (PixiGame.tsx) doesn't have to letterbox in undecorated
+                         # floor on both sides just to fit the room's height
+WALL_TOP_Y = 3          # upper wall row
+WALL_Y = 4              # lower wall row, meets the floor
+Y0, Y1 = 5, 10          # interior floor rows
+
+# Must match BAY_3_WANDER_BOUNDS in convex/aiTown/agentOperations.ts and the join sampling
+# in convex/aiTown/player.ts.
+WALK = dict(minX=6, maxX=11, minY=5, maxY=10)
+
+
+def grid(fill):
+    # Layers are indexed [x][y], matching the format the engine already expects.
+    return [[fill for _ in range(H)] for _ in range(W)]
+
+
+def put(layer, x, y, tile):
+    if 0 <= x < W and 0 <= y < H:
+        layer[x][y] = tile
+
+
+# ---------------------------------------------------------------- background
+# Layer 0: floor everywhere, so panning out shows more ward rather than void.
+floor = grid(T['floor_a'])
+for x in range(W):
+    for y in range(H):
+        # A little variation, deterministic so the map is stable between runs.
+        n = (x * 7 + y * 13) % 11
+        if n == 0:
+            floor[x][y] = T['floor_b']
+        elif n == 4:
+            floor[x][y] = T['floor_c']
+        elif n == 8:
+            floor[x][y] = T['floor_scuff']
+
+# Ambient occlusion where the back wall meets the floor. Without it the wall looks like a
+# sticker laid on the floor rather than something standing up from it.
+for x in range(X0, X1 + 1):
+    floor[x][Y0] = T['floor_ao']
+
+# Layer 1: walkable decor drawn under the characters — the bed, so Ray lies on it.
+decor = grid(EMPTY)
+BED_X, BED_Y = 8, 5
+# 2x2 tiles. Occupied variant — Ray, not a standing character sprite, is placed here (see
+# the sibling suppression in PixiGame.tsx). The neighbouring bay's bed (BAY2_X, below)
+# stays the plain unoccupied tiles — nobody's demoed there.
+put(decor, BED_X, BED_Y, T['bed_hl_occ'])
+put(decor, BED_X + 1, BED_Y, T['bed_hr_occ'])
+put(decor, BED_X, BED_Y + 1, T['bed_fl_occ'])
+put(decor, BED_X + 1, BED_Y + 1, T['bed_fr_occ'])
+
+# ---------------------------------------------------------------- objects
+# Layer 0: structure. Anything here blocks movement.
+walls = grid(EMPTY)
+for x in range(X0, X1 + 1):
+    put(walls, x, WALL_TOP_Y, T['wall_upper'])
+    put(walls, x, WALL_Y, T['wall_lower'])
+
+# The monitor, oxygen outlet, gel dispenser, clock and door are all drawn into the tall
+# back-wall overlay (scripts/gen_backwall.py, rendered by src/components/BackWall.tsx)
+# instead of squeezed one-per-tile here — see BACK_WALL below for why.
+put(walls, X1 - 1, WALL_TOP_Y, T['ceiling_light'])
+
+# Left wall, and the cubicle curtain closing the bay on the right.
+for y in range(Y0, Y1 + 1):
+    put(walls, X0, y, T['wall_side_l'])
+CURTAIN_X = X1
+put(walls, CURTAIN_X, WALL_Y, T['curtain_rail'])
+for i, y in enumerate(range(Y0, Y1)):
+    put(walls, CURTAIN_X, y, T['curtain_a'] if i % 2 == 0 else T['curtain_b'])
+put(walls, CURTAIN_X, Y1, T['curtain_hem'])
+
+# Layer 1: loose equipment. A few of these sit inside the walkable box so they can be
+# where they clinically belong — right against the bed — rather than pushed to the walls.
+# Player.join and wanderDestination both retry on a blocked tile, so a handful of occupied
+# squares inside the box costs nothing.
+props = grid(EMPTY)
+put(props, BED_X - 1, Y0, T['iv_top'])          # drip stand at the bed head
+put(props, BED_X - 1, Y0 + 1, T['iv_bot'])
+put(props, BED_X + 2, Y0, T['cabinet'])         # locker on the far side of the bed —
+                                                 # bed is now 2 tiles wide (BED_X, BED_X+1)
+put(props, BED_X + 3, Y0 + 1, T['chair'])       # Kelly's chair, pulled up to the bed
+put(props, X0 + 1, Y0 + 3, T['stool'])
+put(props, BED_X + 2, Y0 + 4, T['trolley'])
+put(props, X0 + 1, Y0, T['sink'])
+put(props, X0 + 1, Y0 + 1, T['sharps'])
+put(props, X0 + 1, Y1, T['waste'])
+
+# The extra width past the curtain used to be undecorated floor bleeding past the frame's
+# edge with nothing bounding it — a second, smaller bay next door, so anything the wider
+# camera reveals still reads as part of the ward rather than empty space. A curtain divides
+# it from Bay 3 itself, not just the ward's outer edge, or two beds sitting in open floor
+# with no partition between them reads as clutter rather than a neighbouring bay.
+BAY2_X = BED_X + 8
+DIVIDER_X = BED_X + 5
+put(walls, DIVIDER_X, WALL_Y, T['curtain_rail'])
+for i, y in enumerate(range(Y0, Y1)):
+    put(walls, DIVIDER_X, y, T['curtain_a'] if i % 2 == 0 else T['curtain_b'])
+put(walls, DIVIDER_X, Y1, T['curtain_hem'])
+
+put(decor, BAY2_X, BED_Y, T['bed_hl'])
+put(decor, BAY2_X + 1, BED_Y, T['bed_hr'])
+put(decor, BAY2_X, BED_Y + 1, T['bed_fl'])
+put(decor, BAY2_X + 1, BED_Y + 1, T['bed_fr'])
+put(walls, BAY2_X, WALL_TOP_Y, T['ceiling_light'])
+put(props, BAY2_X - 1, Y0, T['iv_top'])
+put(props, BAY2_X - 1, Y0 + 1, T['iv_bot'])
+put(props, BAY2_X + 2, Y0, T['cabinet'])
+put(props, BAY2_X + 2, Y0 + 2, T['chair'])
+put(props, BAY2_X - 2, Y0 + 4, T['stool'])
+
+# Must match TOP_H, MID_H, KICK_H in scripts/gen_backwall.py.
+BACK_WALL = dict(
+    url="/ai-town/assets/ae-back-wall.png",
+    x=X0 * TD,
+    y=WALL_TOP_Y * TD,
+    w=(X1 - X0 + 1) * TD,
+    h=TD + TD + 8,
+)
+
+out = f"""// VeriSim A&E Bay 3 ward map — GENERATED by scripts/gen_map.py, do not edit by hand.
+// Tileset: public/assets/ae-bay-tileset-v2.png, generated by scripts/gen_tileset.py.
+//
+// The walkable core x6-12, y5-11 is kept clear of blocking props because Bay 3's spawn
+// and wander bounds are hardcoded to it (convex/aiTown/agentOperations.ts and
+// convex/aiTown/player.ts). The bed is in a background layer rather than an object layer,
+// so it draws under the characters instead of blocking them.
+
+export const tilesetpath = "/ai-town/assets/ae-bay-tileset-v2.png"
+export const tiledim = {TD}
+export const screenxtiles = {W}
+export const screenytiles = {H}
+export const tilesetpxw = 256
+export const tilesetpxh = 160
+
+export const bgtiles = {json.dumps([floor, decor])}
+export const objmap = {json.dumps([walls, props])}
+export const animatedsprites = []
+
+export const mapwidth = bgtiles[0].length
+export const mapheight = bgtiles[0][0].length
+
+// Tall, free-form overlay for the back wall — see scripts/gen_backwall.py and
+// src/components/BackWall.tsx. Not a tile: positioned in raw pixels because it is taller
+// than the 32px row it sits in, which the tile grid above has no way to express.
+export const backWall = {json.dumps(BACK_WALL)}
+"""
+open('data/aeBay.js', 'w').write(out)
+print(f'wrote data/aeBay.js  {W}x{H}')

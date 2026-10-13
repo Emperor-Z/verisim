@@ -188,7 +188,7 @@ export class Player {
       }
     }
     // VeriSim Scenario 01 is a single consultation room (Bay 3, data/aeBay.js floor tiles
-    // x:5-13, y:4-12) — the clinician should join inside it, not at a random point on the
+    // x:6-11, y:5-10) — the clinician should join inside it, not at a random point on the
     // inherited AI Town map (see ARCHITECTURE_AND_VALIDATION.md §4.4).
     let position;
     for (let attempt = 0; attempt < 10; attempt++) {

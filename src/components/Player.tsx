@@ -4,11 +4,7 @@ import { characters } from '../../data/characters.ts';
 import { toast } from 'react-toastify';
 import { Player as ServerPlayer } from '../../convex/aiTown/player.ts';
 import { GameId } from '../../convex/aiTown/ids.ts';
-import { Id } from '../../convex/_generated/dataModel';
-import { Location, locationFields, playerLocation } from '../../convex/aiTown/location.ts';
-import { useHistoricalValue } from '../hooks/useHistoricalValue.ts';
-import { PlayerDescription } from '../../convex/aiTown/playerDescription.ts';
-import { WorldMap } from '../../convex/aiTown/worldMap.ts';
+import { usePlayerPosition } from '../hooks/usePlayerPosition.ts';
 import { ServerGame } from '../hooks/serverGame.ts';
 
 export type SelectElement = (element?: { kind: 'player'; id: GameId<'players'> }) => void;
@@ -21,6 +17,7 @@ export const Player = ({
   player,
   onClick,
   historicalTime,
+  demoTyping = false,
 }: {
   game: ServerGame;
   isViewer: boolean;
@@ -28,6 +25,8 @@ export const Player = ({
 
   onClick: SelectElement;
   historicalTime?: number;
+  /** Demo build: this player is composing a line the script hasn't revealed yet. */
+  demoTyping?: boolean;
 }) => {
   const playerCharacter = game.playerDescriptions.get(player.id)?.character;
   if (!playerCharacter) {
@@ -35,13 +34,7 @@ export const Player = ({
   }
   const character = characters.find((c) => c.name === playerCharacter);
 
-  const locationBuffer = game.world.historicalLocations?.get(player.id);
-  const historicalLocation = useHistoricalValue<Location>(
-    locationFields,
-    historicalTime,
-    playerLocation(player),
-    locationBuffer,
-  );
+  const pos = usePlayerPosition(game, player, historicalTime);
   if (!character) {
     if (!logged.has(playerCharacter)) {
       logged.add(playerCharacter);
@@ -50,34 +43,30 @@ export const Player = ({
     return null;
   }
 
-  if (!historicalLocation) {
+  if (!pos) {
     return null;
   }
+  const historicalLocation = pos.location;
 
   const isSpeaking = !![...game.world.conversations.values()].find(
     (c) => c.isTyping?.playerId === player.id,
   );
   const isThinking =
-    !isSpeaking &&
-    !![...game.world.agents.values()].find(
-      (a) => a.playerId === player.id && !!a.inProgressOperation,
-    );
-  const tileDim = game.worldMap.tileDim;
+    demoTyping ||
+    (!isSpeaking &&
+      !![...game.world.agents.values()].find(
+        (a) => a.playerId === player.id && !!a.inProgressOperation,
+      ));
   const historicalFacing = { dx: historicalLocation.dx, dy: historicalLocation.dy };
   return (
     <>
       <Character
-        x={historicalLocation.x * tileDim + tileDim / 2}
-        y={historicalLocation.y * tileDim + tileDim / 2}
+        x={pos.px}
+        y={pos.py}
         orientation={orientationDegrees(historicalFacing)}
         isMoving={historicalLocation.speed > 0}
         isThinking={isThinking}
         isSpeaking={isSpeaking}
-        emoji={
-          player.activity && player.activity.until > (historicalTime ?? Date.now())
-            ? player.activity?.emoji
-            : undefined
-        }
         isViewer={isViewer}
         textureUrl={character.textureUrl}
         spritesheetData={character.spritesheetData}

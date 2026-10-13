@@ -1,6 +1,6 @@
 import { ConvexError, v } from 'convex/values';
 import { internalMutation, mutation, query } from './_generated/server';
-import { characters } from '../data/characters';
+import { CLINICIAN_CHARACTER } from '../data/characters';
 import { insertInput } from './aiTown/insertInput';
 import {
   DEFAULT_NAME,
@@ -131,8 +131,10 @@ export const joinWorld = mutation({
     // const { tokenIdentifier } = identity;
     return await insertInput(ctx, world._id, 'join', {
       name,
-      character: characters[Math.floor(Math.random() * characters.length)].name,
-      description: `${DEFAULT_NAME} is a human player`,
+      // The human is always the clinician — picking at random off the character list
+      // (upstream AI Town's behaviour) could spawn them looking like Ray or Kelly.
+      character: CLINICIAN_CHARACTER,
+      description: `${DEFAULT_NAME} is the clinician assessing Ray in A&E Bay 3`,
       // description: `${identity.givenName} is a human player`,
       tokenIdentifier: DEFAULT_NAME,
     });
