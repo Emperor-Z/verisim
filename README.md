@@ -64,18 +64,26 @@ This is a research prototype under active development, not a finished product. B
 about what's actually validated matters more than looking finished - full detail in
 [`demo/ARCHITECTURE_AND_VALIDATION.md`](demo/ARCHITECTURE_AND_VALIDATION.md):
 
-- **Implementation-level logic is tested and passing.** The consent-gate reducer, event classifier
-  and session orchestrator (36 assertions across three test files) are unit-tested and green.
+- **Implementation-level logic is tested and passing.** The consent-gate reducer, event classifier,
+  session orchestrator and bay director (56 assertions across four test files) are unit-tested and green.
 - **The consent-gate mechanic has been validated end-to-end against a live backend** - refuse →
   de-escalate → permit, exercised both via direct mutation calls and a real UI click - independent
   of the game engine's tick loop.
-- **The live LLM agent dialogue path does not work yet.** On `main`, an agent step can block
-  indefinitely on a hung local Ollama call with no timeout, stalling the engine's tick loop
-  entirely. This is a known, open limitation, not a hidden one.
-- A separate branch, `demo/hardcoded-bay-ui` (see `DEMO_BRANCH.md` on that branch), scripts the
-  dialogue so the interface and scenario design can be demonstrated without depending on the live
-  agent pipeline. It is explicitly **not** claiming the live LLM path works - that's what the demo
-  video and screenshots above show.
+- **The bay's dialogue is live.** Ray, Kelly and Sam answer the clinician in one shared Bay 3
+  conversation (`convex/verisim/bay.ts`), generated from their persona cards, with Ray's trust state
+  fed into every turn. Who answers is decided by a deterministic director
+  (`convex/verisim/bayDirector.ts`, unit-tested): Kelly cuts in on history questions while Ray is
+  guarded, Sam flags obs every few turns. Test results are still hand-authored, never generated.
+  This runs outside the AI Town engine's tick loop, so a slow model costs one reply, not the room.
+  Every LLM call now has a timeout (`LLM_TIMEOUT_MS`, default 60s), which fixes the engine stall
+  described in `demo/ARCHITECTURE_AND_VALIDATION.md` §4.4. A reply that fails or times out shows
+  as a note in the transcript.
+- **Dialogue quality is exercised, not validated.** The full refuse → de-escalate → permit arc has
+  been run live on `qwen3.5:4b`, and the persona beats land, but small local models still repeat
+  themselves and drift off-card at times. There is no systematic evaluation yet.
+- Set `VITE_DEMO_MODE=1` to swap the live dialogue for the scripted consultation in
+  `src/demo/bayScript.ts` (the former `demo/hardcoded-bay-ui` branch), for presenting without a
+  model.
 
 ## Running it
 
@@ -85,10 +93,21 @@ npm run dev          # runs the Convex backend and Vite frontend together
 ```
 
 `npm run dev` runs `predev` first (`convex dev --run init --until-success`) to seed the world, then
-starts `dev:backend` (`convex dev --tail-logs`) and `dev:frontend` (`vite`) in parallel. Local
-patient/agent dialogue additionally requires [Ollama](https://ollama.com) running with
-`qwen2.5-coder:7b` pulled (the default in `convex/util/llm.ts`, overridable via `OLLAMA_MODEL`) -
-see [Status](#status) above for the current limitation with this path.
+starts `dev:backend` (`convex dev --tail-logs`) and `dev:frontend` (`vite`) in parallel. Bay
+dialogue additionally requires [Ollama](https://ollama.com) running. The default model is
+`qwen2.5-coder:7b` (`convex/util/llm.ts`); `qwen3.5:4b` gives noticeably better dialogue:
+
+```bash
+npx convex env set OLLAMA_HOST http://127.0.0.1:11434   # with docker-compose.override.yml's host networking
+npx convex env set OLLAMA_MODEL qwen3.5:4b
+```
+
+An existing world from before the A&E map/sprite swap needs patching once:
+
+```bash
+npx convex run verisim/mapPatch:patchDefaultWorldMap
+npx convex run verisim/characterPatch:patchDefaultWorldCharacters
+```
 
 Other useful scripts:
 
