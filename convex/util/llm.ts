@@ -156,7 +156,7 @@ export async function chatCompletion(
     retries,
     ms,
   } = await retryWithBackoff(async () => {
-    const result = await fetch(config.url + '/v1/chat/completions', {
+    const result = await fetchWithTimeout(config.url + '/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -226,7 +226,7 @@ export async function fetchEmbeddingBatch(texts: string[]) {
     retries,
     ms,
   } = await retryWithBackoff(async () => {
-    const result = await fetch(config.url + '/v1/embeddings', {
+    const result = await fetchWithTimeout(config.url + '/v1/embeddings', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -288,6 +288,22 @@ export async function fetchModeration(content: string) {
     return (await result.json()) as { results: { flagged: boolean }[] };
   });
   return flagged;
+}
+
+// VeriSim: a local Ollama call can hang forever (cold model load, wedged runner), and with
+// no timeout the agent step awaiting it never returns — which froze the engine's tick loop
+// (ARCHITECTURE_AND_VALIDATION.md §4.4). Abort instead, and let retryWithBackoff decide.
+const LLM_TIMEOUT_MS = Number(process.env.LLM_TIMEOUT_MS ?? 60_000);
+
+async function fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, { ...init, signal: AbortSignal.timeout(LLM_TIMEOUT_MS) });
+  } catch (e: any) {
+    if (e?.name === 'TimeoutError' || e?.name === 'AbortError') {
+      throw { retry: true, error: new Error(`LLM request timed out after ${LLM_TIMEOUT_MS}ms`) };
+    }
+    throw e;
+  }
 }
 
 // Retry after this much time, based on the retry number.
@@ -697,7 +713,7 @@ export class ChatCompletionContent {
 export async function ollamaFetchEmbedding(text: string) {
   const config = getLLMConfig();
   const { result } = await retryWithBackoff(async () => {
-    const resp = await fetch(config.url + '/api/embeddings', {
+    const resp = await fetchWithTimeout(config.url + '/api/embeddings', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
