@@ -293,14 +293,15 @@ export async function fetchModeration(content: string) {
 // VeriSim: a local Ollama call can hang forever (cold model load, wedged runner), and with
 // no timeout the agent step awaiting it never returns — which froze the engine's tick loop
 // (ARCHITECTURE_AND_VALIDATION.md §4.4). Abort instead, and let retryWithBackoff decide.
-const LLM_TIMEOUT_MS = Number(process.env.LLM_TIMEOUT_MS ?? 60_000);
-
+// Read per call, not at module load: the schema imports this file, and env vars aren't
+// available while Convex evaluates the schema.
 async function fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
+  const timeoutMs = Number(process.env.LLM_TIMEOUT_MS ?? 60_000);
   try {
-    return await fetch(url, { ...init, signal: AbortSignal.timeout(LLM_TIMEOUT_MS) });
+    return await fetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs) });
   } catch (e: any) {
     if (e?.name === 'TimeoutError' || e?.name === 'AbortError') {
-      throw { retry: true, error: new Error(`LLM request timed out after ${LLM_TIMEOUT_MS}ms`) };
+      throw { retry: true, error: new Error(`LLM request timed out after ${timeoutMs}ms`) };
     }
     throw e;
   }
