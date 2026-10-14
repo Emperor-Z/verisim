@@ -117,7 +117,14 @@ npm run dashboard      # opens the Convex dashboard
 
 ## License
 
-MIT - see [`LICENSE`](LICENSE).
+VeriSim's own code, docs and original assets are licensed under the
+[Apache License 2.0](LICENSE). Copyright 2026 Arjun Ashad. If you redistribute this project or a
+derivative of it, you must keep the [`NOTICE`](NOTICE) file, which carries the attribution.
+
+VeriSim is a fork of [AI Town](https://github.com/a16z-infra/ai-town) (MIT, a16z-infra). The
+upstream code it builds on stays under its MIT licence, reproduced in
+[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) along with the terms for upstream assets and
+other third-party material. Apache-2.0 does not relicense any of that.
 
 ## Credits
 
