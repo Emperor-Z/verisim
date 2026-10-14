@@ -1,6 +1,8 @@
 {
   "name": "ai-town",
   "version": "0.0.0",
+  "author": "Arjun Ashad",
+  "license": "Apache-2.0 AND MIT",
   "private": true,
   "scripts": {
     "dev": "npm-run-all --parallel dev:backend dev:frontend",
